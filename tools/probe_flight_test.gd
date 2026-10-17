@@ -85,6 +85,17 @@ func _ready() -> void:
 	# ===== 全程穿地检查（测试期间记录的最小 y-地形差）=====
 	_check(_min_ground_gap > -0.5, "全程不穿地：最小间隙 %.2fm (期望≥-0.5)" % _min_ground_gap)
 
+	# ===== 测 5：下车后玩家不沉地（站立在地形上方）=====
+	_player.set_mounted(null, 0)
+	var drop_gap: float = _player.global_position.y - _terrain_data.get_height(_player.global_position)
+	_check(drop_gap > -0.5 and drop_gap < 3.0, "下车站立：y-地形=%.2fm (期望 0~3)" % drop_gap)
+	# 下车后走两步验证碰撞恢复
+	Input.action_press("move_forward")
+	await _sleep(0.8)
+	Input.action_release("move_forward")
+	var walk_gap: float = _player.global_position.y - _terrain_data.get_height(_player.global_position)
+	_check(walk_gap > -0.5 and walk_gap < 3.0, "下车行走：y-地形=%.2fm (期望 0~3)" % walk_gap)
+
 	if _fails.is_empty():
 		printerr("[T] ★★★ 全部 PASS ★★★")
 		get_tree().quit(0)

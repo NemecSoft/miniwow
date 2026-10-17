@@ -77,15 +77,12 @@ func _physics_process(delta: float) -> void:
 	# W/S/A/D = 相机相对水平移动；空格升 / C 降；Shift 加速；move_and_slide 物理挡山
 	var driver := get_driver_id()
 	if driver == local_id and driver != 0:
-		# WoW 驭空式：沙发朝向跟随镜头 yaw；W 沿镜头视线飞（含俯仰——
-		# 右键压镜头 + W = 俯冲落地）。防穿由 _terrain_data 采样保证（已修复）
+		# WoW 驭空式：W 沿镜头视线飞（右键压镜头+W=俯冲落地）；
+		# 沙发/角色朝向 = 水平移动方向（右键拖动经信号转向，二者同步转）
 		var cam := get_viewport().get_camera_3d()
 		var cam_fwd := -global_transform.basis.z
-		var cam_yaw := rotation.y
 		if cam != null:
 			cam_fwd = -cam.global_transform.basis.z
-			cam_yaw = atan2(-cam_fwd.x, -cam_fwd.z)
-		rotation.y = lerp_angle(rotation.y, cam_yaw, 10.0 * delta)
 
 		var move := Input.get_axis("move_backward", "move_forward")
 		var speed := FLIGHT_SPEED
@@ -117,17 +114,19 @@ func _physics_process(delta: float) -> void:
 			new_pos.y = maxf(new_pos.y, tgt_ground + 0.3)
 		global_position = new_pos
 
-		# 沙发朝向 = 移动方向（角色朝向随沙发，不随 WASD 独立转）
+		# 沙发朝向 = 移动方向；差量同步给玩家节点（角色与沙发朝向一致）
 		if vel.length_squared() > 0.5:
-			rotation.y = lerp_angle(rotation.y, atan2(-vel.x, -vel.z), 8.0 * delta)
+			var target_yaw := atan2(-vel.x, -vel.z)
+			var new_yaw := lerp_angle(rotation.y, target_yaw, 8.0 * delta)
+			var dy := new_yaw - rotation.y
+			rotation.y = new_yaw
+			var drv_player := _find_local_player()
+			if drv_player != null:
+				drv_player.rotation.y += dy
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# M19 WoW 载具相机：主驾按住右键拖动 = 转沙发（相机锁背面跟随）
-	if event is InputEventMouseMotion and get_driver_id() == multiplayer.get_unique_id() \
-			and get_driver_id() != 0 and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-		rotation.y -= event.relative.x * 0.005
-		return
+	# M19：沙发转向已由玩家右键信号（_on_camera_turn）驱动，此处不再直接读鼠标
 	if not event.is_action_pressed("interact"):
 		return
 	var local_player := _find_local_player()

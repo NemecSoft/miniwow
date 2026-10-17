@@ -2,6 +2,10 @@ class_name SpringArmCharacter
 extends Node3D
 
 signal perspective_changed(first_person: bool)
+## M19：右键拖动的转身请求（WoW：右键拖动角色跟着转身）。dx = 水平增量（弧度已乘灵敏度）
+signal character_turn_requested(dx: float)
+## M19：滚轮缩放请求（delta_length 正=拉远）
+signal zoom_requested(delta_length: float)
 
 const MOUSE_SENSIBILITY: float = 0.005
 
@@ -60,28 +64,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
+	if event is InputEventMouseButton:
+		# M19：滚轮缩放镜头
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			zoom_requested.emit(-1.2)
+		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			zoom_requested.emit(1.2)
 	if not (event is InputEventMouseMotion):
 		return
-	# M19 WoW 式：右键按住 = 瞄准转向；左键按住 = 环绕观察（都不转角色）
-	if not (Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or _orbiting):
+	# M19 WoW 权威操作：右键按住 = 转视角 + 角色转身；左键按住 = 环绕观察（角色不动）
+	var right_held := Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	if not (right_held or _orbiting):
 		return
 
 	_yaw = wrapf(_yaw - event.relative.x * MOUSE_SENSIBILITY, -PI, PI)
 	_pitch = clampf(_pitch - event.relative.y * MOUSE_SENSIBILITY, -PI / 4.0, PI / 24.0)
 	_apply_axis_lock()
-
-
-## M19：载具相机模式——锁死本地 yaw（相机固定在载具正后方，载具转向=视角转向）
-var yaw_locked := false
-
-func set_yaw_locked(locked: bool) -> void:
-	yaw_locked = locked
-	if locked:
-		rotation = Vector3(0.0, 0.0, 0.0)
+	# WoW：右键拖动时角色跟着转身（dx 与视角同量）
+	if right_held:
+		character_turn_requested.emit(-event.relative.x * MOUSE_SENSIBILITY)
 
 
 func _apply_axis_lock() -> void:
-	rotation = Vector3(0.0, 0.0 if yaw_locked else _yaw, 0.0)
+	rotation = Vector3(0.0, _yaw, 0.0)
 	if _spring_arm:
 		_spring_arm.rotation = Vector3(_pitch, 0.0, 0.0)
 	if _camera:

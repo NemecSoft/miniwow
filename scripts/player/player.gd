@@ -140,6 +140,22 @@ func set_mounted(vehicle: Node3D, seat_index: int = 0) -> void:
 		_spring_arm_offset.set_yaw_locked(vehicle != null)
 	_request_animation(&"Idle", true)
 
+
+## M19：右键拖动转身——步行转角色节点；骑乘转沙发（角色随沙发）
+func _on_camera_turn(dx: float) -> void:
+	if mounted_vehicle != null:
+		mounted_vehicle.rotation.y += dx
+	else:
+		rotation.y += dx
+
+
+## M19：滚轮缩放镜头距离
+func _on_camera_zoom(delta_length: float) -> void:
+	if _spring_arm_offset != null:
+		_spring_arm_offset.third_person_distance = clampf(
+			_spring_arm_offset.third_person_distance + delta_length, 1.5, 14.0)
+		_spring_arm_offset._apply_perspective()
+
 ## M19：召唤专属沙发到身边并自动乘坐（WoW 坐骑键式）
 func _summon_mount() -> void:
 	var scene := get_tree().current_scene
@@ -332,8 +348,7 @@ func _physics_process(delta):
 		velocity = Vector3.ZERO
 		global_position = mounted_vehicle.global_position \
 				+ mounted_vehicle.get_seat_offset(mounted_seat)
-		# 角色朝向 = 飞行器前方（视觉 body 朝向，复用 apply_rotation）
-		rotation.y = mounted_vehicle.rotation.y
+		# 角色朝向 = 飞行器前方（视觉 body 朝向；节点 rotation 由右键信号驱动）
 		if _body != null:
 			_body.apply_rotation(-mounted_vehicle.global_transform.basis.z)
 		return
@@ -1313,6 +1328,10 @@ func _enter_combat_ready() -> void:
 	attribute_set.hp_changed.connect(_on_attribute_hp_changed)
 	attribute_set.hp_changed.connect(_on_hp_alert_check) # M11：低血/满血提示音（纯表现）
 	attribute_set.mp_changed.connect(_on_attribute_mp_changed)
+	# M19：WoW 相机信号——右键转身（步行转角色 / 骑乘转沙发）、滚轮缩放
+	if _spring_arm_offset != null:
+		_spring_arm_offset.character_turn_requested.connect(_on_camera_turn)
+		_spring_arm_offset.zoom_requested.connect(_on_camera_zoom)
 	attribute_set.stats_changed.connect(_on_attribute_stats_changed) # M5：装备/增益导致攻防变化
 	# M14：开局默认战士（用户选定）——否则 2/3/4 技能槽因未选职业全部静默失效；
 	# 职业训练师处仍可换。走 request_choose_class 正常链路（配属性+广播+绑技能栏）。
@@ -1615,6 +1634,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if current_scene and current_scene.has_method("is_gameplay_input_blocked") and current_scene.is_gameplay_input_blocked():
 		return
 	if not attribute_set.is_alive():
+		return
+	# M19：G 调试发放漂浮伙伴（任务链接入前的演示途径）
+	if event.is_action_pressed("debug_grant_companion") if InputMap.has_action("debug_grant_companion") else false:
+		_ensure_companion()
 		return
 	# M19：X 召唤/收回专属沙发飞行器（WoW 坐骑键式）
 	if event.is_action_pressed("mount"):
