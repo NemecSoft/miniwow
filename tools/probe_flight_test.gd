@@ -17,9 +17,43 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	if _no_player_mode:
+		# 最小战场：只有沙发，无 level/地形/玩家（隔离 hover_couch 自身）
+		_couch = (load("res://scenes/vehicles/hover_couch.tscn") as PackedScene).instantiate()
+		add_child(_couch)
+		_couch.seats = {1: 0}
+		printerr("[T] 最小战场：仅沙发")
+		await get_tree().physics_frame
+		var pos0m := _couch.global_position
+		Input.action_press("move_forward")
+		await _sleep(2.0)
+		Input.action_release("move_forward")
+		var d0m: float = (_couch.global_position - pos0m).length()
+		_check(d0m >= 25.0, "最小战场 W 位移 %.1fm (期望≥25)" % d0m)
+		printerr("[T] 最小战场结论: ", "PASS=沙发自身问题已修复, FAIL=hover_couch 自身有 bug")
+		get_tree().quit(0)
+		return
+
 	var level: Node3D = (load("res://scenes/level/level.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child.call_deferred(level)
 	await get_tree().process_frame
+	# M19 二分诊断：禁用 level 全部子树（除 Environment/TerrainStarter + Environment/Vehicles 链）
+	# M19：把沙发挪到 Terrain3D 开阔平原（避开 GridMap 建筑与同步器缓存干扰）
+	_couch = level.get_node_or_null("Environment/Vehicles/couch_1")
+	var env := level.get_node("Environment")
+	for child in env.get_children():
+		if child.name in ["TerrainStarter", "Vehicles"]:
+			continue
+		child.process_mode = Node.PROCESS_MODE_DISABLED
+	for child in level.get_children():
+		if child.name != "Environment":
+			child.process_mode = Node.PROCESS_MODE_DISABLED
+	printerr("[T] 已禁用 Environment(TerrainStarter/Vehicles 除外) 与 level 其余子树")
+	if _couch and _terrain_data:
+		var open_pos := Vector3(60, 0, 60)
+		open_pos.y = _terrain_data.get_height(open_pos) + 0.8
+		_couch.global_position = open_pos
+		printerr("[T] 沙发已传送到开阔平原 ", open_pos)
 
 	# 等 terrain 就绪
 	var starter := level.get_node_or_null("Environment/TerrainStarter")
@@ -33,14 +67,22 @@ func _ready() -> void:
 	printerr("[T] terrain 就绪 (%.1fs)" % waited)
 
 	# 生成玩家 + 直连沙发（绕 RPC，直测驾驶逻辑）
+	# NO-PLAYER 对照：本轮禁用玩家（排查 mounted 跟随对沙发的影响）
 	var players_container := level.get_node_or_null("PlayersContainer") as Node3D
-	_player = (load("res://scenes/level/player.tscn") as PackedScene).instantiate()
-	_player.name = "1"
-	players_container.add_child(_player, true)
-	for i in 30:
-		await get_tree().physics_frame
+	if not _no_player_mode:
+		_player = (load("res://scenes/level/player.tscn") as PackedScene).instantiate()
+		_player.name = "1"
+		players_container.add_child(_player, true)
+		for i in 30:
+			await get_tree().physics_frame
 	var main_menu: Node = level.get_node("MainMenuUI")
 	main_menu.call("hide_menu")
+	# 玩家相机制 current（真实游戏路径；否则 StartupCamera 抢占导致驾驶朝向错）
+	if _player != null:
+		var player_cam := _player.find_children("*", "Camera3D", true, false)
+		if player_cam.size() > 0:
+			(player_cam[0] as Camera3D).make_current()
+			printerr("[T] 玩家相机已接管")
 
 	_couch = level.get_node_or_null("Environment/Vehicles/couch_1")
 	if _couch == null:
@@ -49,12 +91,24 @@ func _ready() -> void:
 		_couch.name = "couch_1"
 		level.get_node("Environment/Vehicles").add_child(_couch)
 		_couch.global_position = _player.global_position + Vector3(3, 0.5, -3)
+	# M19 诊断：probe 无 peer，MultiplayerSynchronizer 无同步意义——删除以排除嫌疑
+	var sync_node := _couch.get_node_or_null("MultiplayerSynchronizer")
+	if sync_node:
+		_couch.remove_child(sync_node)   # 立即移除（queue_free 延迟一帧不彻底）
+		printerr("[T] 已立即移除 MultiplayerSynchronizer")
 	# 玩家上车（直接设置状态，等价 sync_seats 的本地效果）
-	_couch.seats = {1: 0}
-	_player.set_mounted(_couch, 0)
+	if not _no_player_mode:
+		_couch.seats = {1: 0}
+		_player.set_mounted(_couch, 0)
+	else:
+		_couch.seats = {1: 0}   # 无玩家对照：仍设座位让驾驶分支跑
 	await get_tree().physics_frame
 	var start_pos: Vector3 = _couch.global_position
 	printerr("[T] 测试开始 pos=", start_pos)
+	printerr("[T] couch 实例=", _couch.get_instance_id(), " 路径=", _couch.get_path())
+	var veh := level.get_node("Environment/Vehicles")
+	for c in veh.get_children():
+		printerr("[T] Vehicles 子节点: ", c.name, " id=", c.get_instance_id(), " pos=", c.global_position)
 
 	# ===== 测 1：W 前进 2s，水平位移应 ≥ 25m =====
 	var pos0 := _couch.global_position
@@ -85,8 +139,9 @@ func _ready() -> void:
 	# ===== 全程穿地检查（测试期间记录的最小 y-地形差）=====
 	_check(_min_ground_gap > -0.5, "全程不穿地：最小间隙 %.2fm (期望≥-0.5)" % _min_ground_gap)
 
-	# ===== 测 5：下车后玩家不沉地（站立在地形上方）=====
-	_player.set_mounted(null, 0)
+	# ===== 测 5：下车后玩家不沉地（走真实 sync_seats drop 链路）=====
+	_couch.seats = {}   # 服务器语义：座位清空
+	_couch.sync_seats({})   # 直调同步（call_local，触发 drop 逻辑）
 	var drop_gap: float = _player.global_position.y - _terrain_data.get_height(_player.global_position)
 	_check(drop_gap > -0.5 and drop_gap < 3.0, "下车站立：y-地形=%.2fm (期望 0~3)" % drop_gap)
 	# 下车后走两步验证碰撞恢复
@@ -95,6 +150,8 @@ func _ready() -> void:
 	Input.action_release("move_forward")
 	var walk_gap: float = _player.global_position.y - _terrain_data.get_height(_player.global_position)
 	_check(walk_gap > -0.5 and walk_gap < 3.0, "下车行走：y-地形=%.2fm (期望 0~3)" % walk_gap)
+	printerr("[T] 行走诊断: pos=%s y-地形=%.2f player._terrain_probe=%s" % [
+		_player.global_position, walk_gap, _player._terrain_probe])
 
 	if _fails.is_empty():
 		printerr("[T] ★★★ 全部 PASS ★★★")
@@ -105,6 +162,7 @@ func _ready() -> void:
 
 
 var _min_ground_gap := 999.0
+var _no_player_mode := false  # 对照实验开关
 
 
 func _physics_process(_delta: float) -> void:

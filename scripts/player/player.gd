@@ -125,6 +125,7 @@ const FIRST_PERSON_HIDDEN_BONES: Array[StringName] = [&"Head", &"HeadTop"]
 
 ## M19：乘坐载具状态（非空 = 正在乘坐 hover_couch，本体位置由自己按座位跟随）
 var mounted_vehicle: Node3D = null
+var _terrain_probe: Node = null
 var mounted_seat: int = 0
 
 ## M19：上下车由载具调用；上车重置攻击/连招状态，下车恢复自由移动
@@ -135,9 +136,10 @@ func set_mounted(vehicle: Node3D, seat_index: int = 0) -> void:
 	is_attacking = false
 	is_collecting = false
 	_last_requested_animation = &""
-	# M19：载具相机模式——SpringArm 本地 yaw 锁 0，断开"玩家旋转→相机→沙发→玩家"正反馈循环
-	if _spring_arm_offset != null:
-		_spring_arm_offset.set_yaw_locked(vehicle != null)
+	# M19：上车瞬间一次性对齐角色朝向 = 沙发朝向（消除镜头与沙发的常数差角；
+	# 之后右键拖动的转身信号对两者同步加增量，不会发散）
+	if vehicle != null:
+		rotation.y = vehicle.rotation.y
 	_request_animation(&"Idle", true)
 
 
@@ -158,6 +160,7 @@ func _on_camera_zoom(delta_length: float) -> void:
 
 ## M19：召唤专属沙发到身边并自动乘坐（WoW 坐骑键式）
 func _summon_mount() -> void:
+	printerr("[SUMMON] 被调用 frame=", Engine.get_physics_frames())
 	var scene := get_tree().current_scene
 	var vehicles := scene.get_node_or_null("Environment/Vehicles")
 	if vehicles == null:
@@ -344,6 +347,16 @@ func _physics_process(delta):
 
 	# M19：乘坐载具时本体位置由自己按座位跟随（沙发位置由 Synchronizer 同步），
 	# 禁用自身移动/重力/攻击，保持 Idle 姿态
+	# M19 安全网：意外沉入地形（GridMap 交界/碰撞缺口）时拉回地表
+	if _terrain_probe == null:
+		_terrain_probe = get_node_or_null("../../Environment/TerrainStarter")
+	if _terrain_probe != null and _terrain_probe.terrain != null \
+			and _terrain_probe.terrain.data != null and not is_multiplayer_authority() == false:
+		var ground_check: float = _terrain_probe.terrain.data.get_height(global_position)
+		if global_position.y < ground_check - 3.0:
+			global_position.y = ground_check + 0.5
+			velocity.y = 0.0
+
 	if mounted_vehicle != null:
 		velocity = Vector3.ZERO
 		global_position = mounted_vehicle.global_position \
