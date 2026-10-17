@@ -44,8 +44,11 @@ func _ready() -> void:
 		anim_player.play(ANIM_IDLE)
 	if anim_player and anim_player.has_animation(ANIM_WAVE):
 		anim_player.get_animation(ANIM_WAVE).loop_mode = Animation.LOOP_NONE
+	# M19：漂浮伙伴无互动——交互提示永久隐藏
+	if interact_prompt:
+		interact_prompt.visible = false
 	# 模型自带 Y 立方体型，缩放到与机器人协调的高度（约 0.9 米）
-	scale = Vector3.ONE * 0.9
+	scale = Vector3.ONE * 0.5
 
 
 func _apply_plush_material() -> void:
@@ -56,43 +59,50 @@ func _apply_plush_material() -> void:
 			mi.set_surface_override_material(surface, PLUSH_MAT)
 
 
+## M19 漂浮模式（原神派蒙式）：小型、悬空跟随、正弦浮动、无交互
+const HOVER_HEIGHT := 1.6          # 悬浮高度（玩家脚底起算）
+const HOVER_SIDE := 0.9            # 右侧偏移
+const HOVER_BACK := 0.8            # 后方偏移
+const HOVER_AMPLITUDE := 0.12      # 上下浮动幅度
+const HOVER_FREQ := 2.0            # 浮动频率
+const FOLLOW_LERP := 5.0           # 位置平滑
+var _hover_t := 0.0
+
+
 func _physics_process(delta: float) -> void:
 	if owner_player == null or not is_instance_valid(owner_player):
 		return
+	_hover_t += delta
+	var hover_wave: float = sin(_hover_t * TAU * HOVER_FREQ) * HOVER_AMPLITUDE
+
+	# 目标点：玩家右后上方的漂浮位（随玩家朝向旋转）
+	var offset := owner_player.global_transform.basis * Vector3(HOVER_SIDE, 0, HOVER_BACK)
+	var target := owner_player.global_position + Vector3(offset.x, HOVER_HEIGHT, offset.z)
+	target.y += hover_wave
+
+	# 瞬移兜底（传送/重生后快速归位）
+	if global_position.distance_to(target) > 15.0:
+		global_position = target
+	else:
+		global_position = global_position.lerp(target, 1.0 - exp(-FOLLOW_LERP * delta))
+
+	# 面朝主人
 	var to_player := owner_player.global_position - global_position
-	to_player.y = 0.0
-	var distance := to_player.length()
-	_update_interact_prompt(distance)
+	rotation.y = lerp_angle(rotation.y, atan2(to_player.x, to_player.z), 1.0 - exp(-8.0 * delta))
 
-	if _is_waving:
-		return # 挥手期间原地不动
+	# 漂浮时播放待机动画
+	_play(ANIM_IDLE)
 
-	if distance > DIST_TELEPORT:
-		global_position = owner_player.global_position - to_player.normalized() * 2.0
-		_play(ANIM_IDLE)
-		return
 
-	var target_speed := 0.0
-	if distance > DIST_WALK:
-		target_speed = RUN_SPEED
-		_play(ANIM_RUN)
-	elif distance > DIST_IDLE:
-		target_speed = WALK_SPEED
-		_play(ANIM_WALK)
-	else:
-		_play(ANIM_IDLE)
-
-	if target_speed > 0.0 and distance > 0.01:
-		var dir := to_player / distance
-		# 直接沿方向推进 speed*delta（lerp 目标点会随距离缩短而步长趋零）
-		global_position += dir * target_speed * delta
-		# 面向移动方向（模型正面 +Z）
-		var target_yaw := atan2(dir.x, dir.z)
-		rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-LERP_YAW * delta))
-	else:
-		# 待机时面对主人
-		var target_yaw := atan2(to_player.x, to_player.z)
-		rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-LERP_YAW * delta))
+## M19 模型替换接口：传入新模型场景替换默认 Plush（保留漂浮/跟随行为）
+func set_model(model_scene: PackedScene) -> void:
+	var old := $Plush
+	if old:
+		old.queue_free()
+	var inst := model_scene.instantiate()
+	inst.name = "Plush"
+	add_child(inst)
+	_apply_plush_material()
 
 
 func _update_interact_prompt(distance: float) -> void:

@@ -1321,9 +1321,8 @@ func _enter_combat_ready() -> void:
 	if multiplayer.is_server() and player_class.is_empty():
 		request_choose_class(DEFAULT_CLASS_ID)
 		set_meta("auto_defaulted_class", true)
-	# M15：本地玩家生成专属伙伴（单机表现实体，挂 level 场景不进多人同步）
-	if is_multiplayer_authority():
-		call_deferred("_spawn_partner")
+	# M19：伙伴改为任务获得——角色初始没有伙伴，
+	# 完成任一任务后自动获得漂浮伙伴（见 sync_quest_state 的发放钩子）
 	# M11：进服欢迎音——本地玩家战斗系统就绪即视为已进入世界（远程玩家不播）
 	if is_multiplayer_authority():
 		SfxManager.play(&"welcome")
@@ -2407,3 +2406,15 @@ func sync_quest_state(progress: Dictionary, done: Array) -> void:
 	for quest_id in done:
 		_quests_done.append(str(quest_id))
 	quest_state_changed.emit()
+	# M19 伙伴发放钩子：完成第一个任务 → 获得漂浮伙伴（各端自发生成自己的，
+	# 伙伴是纯表现单机实体不进多人同步）。任务链设计后续扩展，
+	# 可按 _quests_done 内容解锁不同伙伴模型（set_model 接口）
+	if is_multiplayer_authority() and _quests_done.size() > 0:
+		_ensure_companion()
+
+
+## M19：确保伙伴存在（无则生成漂浮伙伴）
+func _ensure_companion() -> void:
+	if get_tree().root.get_node_or_null("Level/Partner") != null:
+		return
+	_spawn_partner()

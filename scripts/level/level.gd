@@ -599,12 +599,6 @@ func _try_interact() -> void:
 		if villager:
 			villager.say_hello()
 			return
-		# M15：伙伴最低优先级——靠近自己的小跟班按 E，它挥手
-		for partner in get_tree().get_nodes_in_group("partners"):
-			if partner is Node3D:
-				if local_player.global_position.distance_to((partner as Node3D).global_position) <= 3.0:
-					partner.say_hello()
-					return
 
 
 ## M3：E 键交互——靠近商人则打开商店
