@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/skills/icons/frostbolt.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = "m_frostbolt"
+skill_name = "冰箭"
+description = "发射冰箭（14 米），造成攻击力 100% 的伤害，并使目标移速降低 55%，持续 4 秒。冷却 5 秒，消耗 12 点法力。"
+icon = ExtResource("2_icon")
+cooldown = 5.0
+mp_cost = 12
+damage_multiplier = 1.0
+range = 14.0
+animation = &"Attack1"
+target_type = 0
+aoe_radius = 0.0
+is_projectile = true
+projectile_speed = 14.0
+projectile_color = Color(0.4, 0.75, 1, 1)
+heal_amount = 0
+heal_percent = 0.0
+slow_factor = 0.45
+slow_duration = 4.0
+dot_amount = 0
+dot_ticks = 0
+dot_interval = 1.0
+hot_amount = 0
+hot_ticks = 0
+hot_interval = 1.0
+buff_atk = 0
+buff_def = 0
+buff_duration = 0.0
+requires_target_hp_below = 0.0

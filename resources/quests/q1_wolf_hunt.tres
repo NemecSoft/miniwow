@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q1_wolf_hunt"
+name = "林缘试炼"
+description = "卫兵队长卡尔：村子东边的林缘最近游荡着一群野狼，夜里犬吠个不停。去收拾 3 只，让村民们睡个安稳觉。"
+objective_text = "击杀野狼"
+objective_type = 0
+target_monster_id = "wolf"
+required_count = 3
+min_level = 1
+reward_exp = 100
+reward_gold = 20

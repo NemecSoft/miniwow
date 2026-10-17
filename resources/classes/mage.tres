@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ClassData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/classes/class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+id = "mage"
+display_name = "法师"
+description = "脆弱的炮台。法力充沛，火球与冰箭在 12 米外取敌首级，被近身就用魔爆术突围。"
+base_max_hp = 100
+base_max_mp = 80
+base_atk = 10
+base_def = 2
+skill_ids = Array[String](["m_fireball", "m_frostbolt", "m_arcane_blast", "m_arcane_power"])

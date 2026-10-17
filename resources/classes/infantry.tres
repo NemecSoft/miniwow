@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ClassData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/classes/class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+id = "infantry"
+display_name = "步兵"
+description = "钢铁之壁。生命与防御全职业之最，用盾击和反击风暴控场，铁壁与背水一战立于不败。"
+base_max_hp = 190
+base_max_mp = 40
+base_atk = 12
+base_def = 9
+skill_ids = Array[String](["i_shield_bash", "i_retaliate", "i_iron_wall", "i_last_stand"])

@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bvolf2axh8i3q"]
+
+[ext_resource type="Texture2D" uid="uid://k3x7gpudbapg" path="res://assets/kaykit_env/texture.png" id="1_q0h78"]
+
+[resource]
+resource_name = "Environment_Material"
+albedo_texture = ExtResource("1_q0h78")
+roughness = 0.4

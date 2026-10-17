@@ -1,0 +1,383 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" path="res://assets/items/weapons/icons/sword.png" id="2_sword"]
+[ext_resource type="Texture2D" path="res://assets/items/weapons/icons/axe.png" id="3_axe"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.08, 0.12, 0.85)
+border_width_top = 2
+border_color = Color(0.25, 0.22, 0.18, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0.2, 0.05, 0.05, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(0.85, 0.2, 0.2, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mp_bg"]
+bg_color = Color(0.05, 0.05, 0.2, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mp_fill"]
+bg_color = Color(0.25, 0.45, 0.9, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_bg"]
+bg_color = Color(0.12, 0.1, 0.02, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_fill"]
+bg_color = Color(0.95, 0.75, 0.15, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_death"]
+bg_color = Color(0.02, 0.02, 0.03, 0.6)
+
+[node name="HUD" type="CanvasLayer"]
+auto_translate_mode = 1
+script = ExtResource("1_hud")
+
+[node name="PlayerFrame" type="Panel" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 260.0
+offset_bottom = 120.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="NameLabel" type="Label" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 240.0
+offset_bottom = 26.0
+text = "冒险者"
+
+[node name="LevelLabel" type="Label" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 28.0
+offset_right = 240.0
+offset_bottom = 46.0
+text = "Lv.1"
+modulate = Color(0.7, 0.7, 0.7, 1)
+
+[node name="GoldLabel" type="Label" parent="PlayerFrame"]
+offset_left = 150.0
+offset_top = 8.0
+offset_right = 242.0
+offset_bottom = 26.0
+text = "金币: 0"
+horizontal_alignment = 2
+modulate = Color(1.0, 0.85, 0.3, 1)
+
+[node name="StatsLabel" type="Label" parent="PlayerFrame"]
+offset_left = 150.0
+offset_top = 30.0
+offset_right = 242.0
+offset_bottom = 48.0
+text = "攻 0 · 防 0"
+horizontal_alignment = 2
+modulate = Color(0.55, 0.85, 1.0, 1)
+
+[node name="HPBar" type="ProgressBar" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 52.0
+offset_right = 242.0
+offset_bottom = 66.0
+max_value = 120.0
+value = 120.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+
+[node name="MPBar" type="ProgressBar" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 70.0
+offset_right = 242.0
+offset_bottom = 84.0
+max_value = 50.0
+value = 50.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_mp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_mp_fill")
+
+[node name="XPBar" type="ProgressBar" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 90.0
+offset_right = 242.0
+offset_bottom = 102.0
+max_value = 100.0
+value = 0.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_xp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_xp_fill")
+
+[node name="XPLabel" type="Label" parent="PlayerFrame"]
+offset_left = 10.0
+offset_top = 102.0
+offset_right = 242.0
+offset_bottom = 118.0
+text = "经验 0/100"
+horizontal_alignment = 1
+modulate = Color(0.95, 0.8, 0.35, 1)
+
+[node name="QuestTracker" type="PanelContainer" parent="."]
+visible = false
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -296.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 240.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="QuestTracker"]
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="QuestTracker/Margin"]
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="QuestTracker/Margin/VBox"]
+text = "任务"
+modulate = Color(1.0, 0.85, 0.3, 1)
+
+[node name="HSeparator" type="HSeparator" parent="QuestTracker/Margin/VBox"]
+theme_override_constants/separation = 4
+
+[node name="QuestList" type="VBoxContainer" parent="QuestTracker/Margin/VBox"]
+theme_override_constants/separation = 6
+
+[node name="TargetFrame" type="Panel" parent="."]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -160.0
+offset_top = 16.0
+offset_right = 160.0
+offset_bottom = 68.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="NameLabel" type="Label" parent="TargetFrame"]
+offset_left = 10.0
+offset_top = 6.0
+offset_right = 310.0
+offset_bottom = 26.0
+text = "目标"
+
+[node name="HPBar" type="ProgressBar" parent="TargetFrame"]
+offset_left = 10.0
+offset_top = 30.0
+offset_right = 310.0
+offset_bottom = 46.0
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+
+[node name="SkillBar" type="HBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -112.0
+offset_top = -92.0
+offset_right = 112.0
+offset_bottom = -36.0
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="SkillSlot1" type="Panel" parent="SkillBar"]
+custom_minimum_size = Vector2(96, 56)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Icon" type="TextureRect" parent="SkillBar/SkillSlot1"]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 50.0
+offset_bottom = 50.0
+texture = ExtResource("2_sword")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KeyLabel" type="Label" parent="SkillBar/SkillSlot1"]
+offset_left = 54.0
+offset_top = 6.0
+offset_right = 90.0
+offset_bottom = 24.0
+text = "左键"
+
+[node name="CooldownLabel" type="Label" parent="SkillBar/SkillSlot1"]
+offset_left = 54.0
+offset_top = 28.0
+offset_right = 90.0
+offset_bottom = 46.0
+text = "普攻"
+
+[node name="CooldownOverlay" type="ColorRect" parent="SkillBar/SkillSlot1"]
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 94.0
+offset_bottom = 54.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="SkillSlot2" type="Panel" parent="SkillBar"]
+custom_minimum_size = Vector2(96, 56)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Icon" type="TextureRect" parent="SkillBar/SkillSlot2"]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 50.0
+offset_bottom = 50.0
+texture = ExtResource("3_axe")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KeyLabel" type="Label" parent="SkillBar/SkillSlot2"]
+offset_left = 54.0
+offset_top = 6.0
+offset_right = 90.0
+offset_bottom = 24.0
+text = "1"
+
+[node name="CooldownLabel" type="Label" parent="SkillBar/SkillSlot2"]
+offset_left = 54.0
+offset_top = 28.0
+offset_right = 90.0
+offset_bottom = 46.0
+text = "重击"
+
+[node name="CooldownOverlay" type="ColorRect" parent="SkillBar/SkillSlot2"]
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 94.0
+offset_bottom = 54.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="SkillSlot3" type="Panel" parent="SkillBar"]
+custom_minimum_size = Vector2(96, 56)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Icon" type="TextureRect" parent="SkillBar/SkillSlot3"]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 50.0
+offset_bottom = 50.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KeyLabel" type="Label" parent="SkillBar/SkillSlot3"]
+offset_left = 54.0
+offset_top = 6.0
+offset_right = 90.0
+offset_bottom = 24.0
+text = "2"
+
+[node name="CooldownLabel" type="Label" parent="SkillBar/SkillSlot3"]
+offset_left = 54.0
+offset_top = 28.0
+offset_right = 90.0
+offset_bottom = 46.0
+text = "技能2"
+
+[node name="CooldownOverlay" type="ColorRect" parent="SkillBar/SkillSlot3"]
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 94.0
+offset_bottom = 54.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="SkillSlot4" type="Panel" parent="SkillBar"]
+custom_minimum_size = Vector2(96, 56)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Icon" type="TextureRect" parent="SkillBar/SkillSlot4"]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 50.0
+offset_bottom = 50.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KeyLabel" type="Label" parent="SkillBar/SkillSlot4"]
+offset_left = 54.0
+offset_top = 6.0
+offset_right = 90.0
+offset_bottom = 24.0
+text = "3"
+
+[node name="CooldownLabel" type="Label" parent="SkillBar/SkillSlot4"]
+offset_left = 54.0
+offset_top = 28.0
+offset_right = 90.0
+offset_bottom = 46.0
+text = "技能3"
+
+[node name="CooldownOverlay" type="ColorRect" parent="SkillBar/SkillSlot4"]
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 94.0
+offset_bottom = 54.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="HintLabel" type="Label" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = -28.0
+offset_right = 340.0
+offset_bottom = -6.0
+horizontal_alignment = 1
+modulate = Color(0.85, 0.85, 0.85, 0.9)
+text = "准星对准目标按左键选中并攻击 | 按住左键连续攻击 | Q 选择最近目标 | 1/2/3 释放职业技能"
+
+[node name="DeathPanel" type="PanelContainer" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_death")
+
+[node name="CenterContainer" type="CenterContainer" parent="DeathPanel"]
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DeathPanel/CenterContainer"]
+offset_left = 500.0
+offset_top = 300.0
+offset_right = 780.0
+offset_bottom = 420.0
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="DeathTitle" type="Label" parent="DeathPanel/CenterContainer/VBoxContainer"]
+offset_top = 22.0
+offset_right = 280.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+text = "你死了"
+
+[node name="DeathHint" type="Label" parent="DeathPanel/CenterContainer/VBoxContainer"]
+offset_top = 68.0
+offset_right = 280.0
+offset_bottom = 88.0
+horizontal_alignment = 1
+modulate = Color(0.75, 0.75, 0.75, 1)
+text = "别灰心，回村满血再来"
+
+[node name="ReleaseButton" type="Button" parent="DeathPanel/CenterContainer/VBoxContainer"]
+offset_top = 104.0
+offset_right = 280.0
+offset_bottom = 138.0
+text = "释放灵魂（回村复活）"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q6_golem_hunt"
+name = "石元素的心核"
+description = "卫兵队长卡尔：最深处的石元素醒了，大地在震。击碎 2 个石元素，拿到它们的心核——这是你出师前最后的试炼。这顶秘术环带，办完这事就是你的了。"
+objective_text = "击杀石元素"
+objective_type = 0
+target_monster_id = "golem"
+required_count = 2
+min_level = 5
+reward_exp = 900
+reward_gold = 200
+reward_item_id = "circlet"
+reward_item_quantity = 1
+prerequisite_quest_id = "q5_lich_hunt"

@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/partner/godot_plush.glb" id="1_plush"]
+[ext_resource type="Script" path="res://scripts/player/partner.gd" id="2_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/Kurland.ttf" id="3_font"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_prompt"]
+font = ExtResource("3_font")
+font_size = 16
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+
+[node name="Partner" type="Node3D"]
+script = ExtResource("2_script")
+
+[node name="Plush" parent="." instance=ExtResource("1_plush")]
+
+[node name="InteractPrompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+billboard = 1
+no_depth_test = true
+pixel_size = 0.02
+text = "按 E 和小跟班打招呼"
+font = ExtResource("3_font")
+font_size = 16
+outline_size = 6
+modulate = Color(1, 0.85, 0.4, 1)
+visible = false

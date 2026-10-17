@@ -1,0 +1,181 @@
+[gd_scene load_steps=32 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/infantry_kaykit/GamedevTV_Mannequin_Medium.glb" id="1_glb"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Idle_A.res" id="2_idle"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Running_B.res" id="3_run"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Dodge_Forward.res" id="4_dodge"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_1H_Attack_Slice_Horizontal.res" id="5_slice"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_1H_Attack_Stab.res" id="6_stab"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_2H_Attack_Spin.res" id="7_spin"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_1H_Attack_Slice_Diagonal.res" id="8_diag"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_2H_Attack_Chop.res" id="9_chop"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Spawn_Ground.res" id="10_spawn"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Hit_A.res" id="11_hit"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Death_A.res" id="12_death"]
+[ext_resource type="Script" path="res://scripts/player/weapon_slot.gd" id="13_wslot"]
+[ext_resource type="Script" path="res://scripts/player/slash_vfx.gd" id="14_svfx"]
+[ext_resource type="Shader" path="res://assets/kaykit_fx/Dash.tres" id="15_dash"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/fire-slash.ogg" id="16_fire"]
+[ext_resource type="Script" path="res://scripts/player/foot_bone.gd" id="17_foot"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/footstep-01.ogg" id="18_fs1"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/footstep-02.ogg" id="19_fs2"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/footstep-03.ogg" id="20_fs3"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/footstep-04.ogg" id="21_fs4"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/metal-hit.ogg" id="22_mhit"]
+[ext_resource type="AudioStream" path="res://assets/sfx/combat/dash.ogg" id="23_dash"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_feet"]
+streams_count = 4
+stream_0/stream = ExtResource("18_fs1")
+stream_1/stream = ExtResource("19_fs2")
+stream_2/stream = ExtResource("20_fs3")
+stream_3/stream = ExtResource("21_fs4")
+
+[sub_resource type="Gradient" id="Gradient_sword"]
+offsets = PackedFloat32Array(0, 0.25247526, 0.7574257)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_sword"]
+gradient = SubResource("Gradient_sword")
+fill_to = Vector2(0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sword"]
+albedo_texture = SubResource("GradientTexture2D_sword")
+emission_enabled = true
+emission_energy_multiplier = 4.0
+emission_texture = SubResource("GradientTexture2D_sword")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_sword"]
+top_radius = 0.1
+bottom_radius = 0.1
+cap_top = false
+
+[sub_resource type="Gradient" id="Gradient_vfx"]
+offsets = PackedFloat32Array(0, 0.8019802, 1)
+colors = PackedColorArray(1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_vfx"]
+gradient = SubResource("Gradient_vfx")
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_vfx"]
+noise_type = 2
+frequency = 0.005
+fractal_type = 0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_vfx"]
+noise = SubResource("FastNoiseLite_vfx")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vfx"]
+render_priority = 0
+shader = ExtResource("15_dash")
+shader_parameter/Speed = 3.0
+shader_parameter/NoiseTexture = SubResource("NoiseTexture2D_vfx")
+shader_parameter/GradientParameter = SubResource("GradientTexture1D_vfx")
+shader_parameter/Threshold = 1.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_vfx"]
+size = Vector2(4, 2)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_handle"]
+top_radius = 0.05
+bottom_radius = 0.05
+height = 0.5
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_inf"]
+_data = {
+&"Attack1": ExtResource("7_spin"),
+&"Death": ExtResource("12_death"),
+&"Dodge": ExtResource("4_dodge"),
+&"Emote2": ExtResource("10_spawn"),
+&"Fall": ExtResource("3_run"),
+&"Hit": ExtResource("11_hit"),
+&"Idle": ExtResource("2_idle"),
+&"Jump": ExtResource("4_dodge"),
+&"Kick": ExtResource("6_stab"),
+&"Pickup": ExtResource("9_chop"),
+&"Run": ExtResource("3_run"),
+&"Sprint": ExtResource("3_run"),
+&"Strike": ExtResource("8_diag"),
+&"SwordSlash": ExtResource("5_slice")
+}
+
+[node name="InfantryVisual" type="Node3D"]
+
+[node name="Mannequin" parent="." instance=ExtResource("1_glb")]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Mannequin"]
+libraries = {
+&"": SubResource("AnimationLibrary_inf")
+}
+
+[node name="WeaponSlot" type="BoneAttachment3D" parent="Mannequin/Rig_Medium/Skeleton3D" index="6"]
+transform = Transform3D(0.16824701, -0.13986602, -0.97577137, -0.3597121, -0.9303318, 0.07133022, -0.9177683, 0.3389959, -0.20683716, -0.48105317, 0.65522736, -0.007895434)
+bone_name = "hand.r"
+bone_idx = 12
+script = ExtResource("13_wslot")
+vfx_threshold = 1.0
+
+[node name="LazerSword" type="MeshInstance3D" parent="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -1.25, 0, 0)
+material_override = SubResource("StandardMaterial3D_sword")
+gi_mode = 0
+mesh = SubResource("CylinderMesh_sword")
+
+[node name="SlashVFX" type="MeshInstance3D" parent="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot/LazerSword" node_paths=PackedStringArray("weapon_slot")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -2, 0, 0)
+visible = false
+material_override = SubResource("ShaderMaterial_vfx")
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("QuadMesh_vfx")
+script = ExtResource("14_svfx")
+weapon_slot = NodePath("../..")
+attack_type = 1
+
+[node name="Handle" type="MeshInstance3D" parent="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+gi_mode = 0
+mesh = SubResource("CylinderMesh_handle")
+
+[node name="AttackAudio" type="AudioStreamPlayer3D" parent="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot"]
+stream = ExtResource("16_fire")
+volume_db = 10.0
+max_db = 5.0
+bus = &"Master"
+
+[node name="RightFootBone" type="BoneAttachment3D" parent="Mannequin/Rig_Medium/Skeleton3D" index="7"]
+transform = Transform3D(0.9969337, -0.04310859, 0.065302916, 0.019372532, -0.6726018, -0.7397508, 0.075812615, 0.7387489, -0.66970444, -0.17747284, 0.15463437, 0.14311172)
+bone_name = "foot.r"
+bone_idx = 21
+script = ExtResource("17_foot")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="Mannequin/Rig_Medium/Skeleton3D/RightFootBone"]
+stream = SubResource("AudioStreamRandomizer_feet")
+volume_db = -3.0
+max_db = -3.0
+bus = &"Master"
+
+[node name="LeftFootBone" type="BoneAttachment3D" parent="Mannequin/Rig_Medium/Skeleton3D" index="8"]
+transform = Transform3D(0.9967874, 0.055145025, -0.0580888, 0.024201557, -0.89871144, -0.43787342, -0.07635177, 0.43506253, -0.8971578, 0.18914177, 0.17295554, -0.18798341)
+bone_name = "foot.l"
+bone_idx = 17
+script = ExtResource("17_foot")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="Mannequin/Rig_Medium/Skeleton3D/LeftFootBone"]
+stream = SubResource("AudioStreamRandomizer_feet")
+volume_db = -3.0
+max_db = -3.0
+bus = &"Master"
+
+[node name="DamageAudio" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("22_mhit")
+bus = &"Master"
+
+[node name="DashAudio" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("23_dash")
+bus = &"Master"
+
+[connection signal="slash" from="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot" to="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot/AttackAudio" method="play"]
+[connection signal="footstep" from="Mannequin/Rig_Medium/Skeleton3D/RightFootBone" to="Mannequin/Rig_Medium/Skeleton3D/RightFootBone/AudioStreamPlayer3D" method="play"]
+[connection signal="footstep" from="Mannequin/Rig_Medium/Skeleton3D/LeftFootBone" to="Mannequin/Rig_Medium/Skeleton3D/LeftFootBone/AudioStreamPlayer3D" method="play"]

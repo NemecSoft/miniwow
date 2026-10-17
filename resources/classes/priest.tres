@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ClassData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/classes/class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+id = "priest"
+display_name = "牧师"
+description = "团队的后盾。惩击压制、快速治疗与恢复让队伍走得更高更远，神圣新星攻守兼备。"
+base_max_hp = 120
+base_max_mp = 60
+base_atk = 11
+base_def = 4
+skill_ids = Array[String](["p_smite", "p_flash_heal", "p_renew", "p_holy_nova"])

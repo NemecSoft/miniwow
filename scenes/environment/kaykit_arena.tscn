@@ -1,0 +1,45 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="MeshLibrary" path="res://assets/kaykit_env/floormap.tres" id="1_floor"]
+[ext_resource type="MeshLibrary" path="res://assets/kaykit_env/wall_map.tres" id="2_wall"]
+[ext_resource type="PackedScene" path="res://assets/kaykit_env/Couch.gltf" id="3_couch"]
+[ext_resource type="PackedScene" path="res://assets/kaykit_env/Barrel_A.gltf" id="4_barrel"]
+[ext_resource type="PackedScene" path="res://assets/kaykit_env/Chest.gltf" id="5_chest"]
+
+[node name="KaykitArena" type="Node3D"]
+
+[node name="Floormap" type="GridMap" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.25, 0)
+mesh_library = ExtResource("1_floor")
+cell_size = Vector3(4, 0.5, 4)
+data = {
+"cells": PackedInt32Array(0, 65535, 0, 65535, 65535, 0, 0, 0, 0, 65535, 0, 0, 65534, 0, 0, 1, 0, 1, 1, 65535, 0, 65534, 65535, 1, 65534, 65534, 1, 1, 65534, 1, 1, 1, 1, 0, 1, 1, 65535, 1, 1, 65534, 1, 1, 65534, 65532, 655360, 65535, 65532, 1, 65534, 65533, 1, 0, 65532, 1, 1, 65532, 655360, 1, 65533, 1, 65533, 1, 655361, 65533, 0, 655361, 65533, 65535, 655361, 65533, 65534, 655361, 65533, 65532, 655360, 65533, 65533, 655360, 0, 65534, 655361, 0, 65533, 655361, 65535, 65533, 655361, 65535, 65534, 655360)
+}
+
+[node name="Wallmap" type="GridMap" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9, 0)
+mesh_library = ExtResource("2_wall")
+cell_size = Vector3(2, 4, 2)
+cell_center_x = false
+cell_center_z = false
+data = {
+"cells": PackedInt32Array(-65532, 3, 1441792, -65532, 1, 1441792, -65532, 65535, 1441792, -65532, 65533, 1441792, -65532, 65531, 1441792, -65532, 65529, 1441792, -65533, 65528, 655360, -65535, 65528, 0, -1, 65528, 0, -3, 65528, 0, -5, 65528, 0, -6, 65529, 1441792, -6, 65531, 1441792, -6, 65533, 1441792, -6, 65535, 1441792, -6, 1, 1441792, -6, 3, 1441792, -65533, 4, 655360, -65535, 4, 655360, -1, 4, 655360, -3, 4, 655360, -5, 4, 655360)
+}
+
+[node name="Couch1" parent="." instance=ExtResource("3_couch")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 1)
+
+[node name="Couch2" parent="." instance=ExtResource("3_couch")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, -6)
+
+[node name="Barrel1" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 3)
+
+[node name="Barrel2" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 3.5)
+
+[node name="Barrel3" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 4.2)
+
+[node name="Chest1" parent="." instance=ExtResource("5_chest")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -7)

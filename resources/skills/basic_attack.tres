@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/items/weapons/icons/sword.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = "basic_attack"
+skill_name = "普通攻击"
+description = "手持武器的一次普通挥砍，命中即造成攻击力 100% 的物理伤害。"
+icon = ExtResource("2_icon")
+cooldown = 1.0
+mp_cost = 0
+damage_multiplier = 1.0
+range = 3.2
+# M16d：普攻改播重定向挥剑 SwordSlash（Sword_Attack 烘焙）；空手时 player.gd
+# 自动映射为 Strike 直拳。Attack1（转圈旋风斩）保留给 w_whirlwind 等技能。
+animation = &"SwordSlash"

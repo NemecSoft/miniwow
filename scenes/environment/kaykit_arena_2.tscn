@@ -1,0 +1,83 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="MeshLibrary" path="res://assets/kaykit_env/floormap.tres" id="1_floor"]
+[ext_resource type="MeshLibrary" path="res://assets/kaykit_env/wall_map.tres" id="2_wall"]
+[ext_resource type="PackedScene" path="res://assets/kaykit_env/Barrel_A.gltf" id="4_barrel"]
+[ext_resource type="PackedScene" path="res://assets/kaykit_env/Couch.gltf" id="3_couch"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pit"]
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 1)
+proximity_fade_enabled = true
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_pit"]
+size = Vector2(8, 8)
+
+[node name="KaykitArena2" type="Node3D"]
+
+[node name="Floormap" type="GridMap" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.25, 0)
+mesh_library = ExtResource("1_floor")
+cell_size = Vector3(4, 0.5, 4)
+data = {
+"cells": PackedInt32Array(0, 65535, 0, 65535, 65535, 0, 0, 0, 0, 65535, 0, 0, 65534, 0, 0, 1, 0, 1, 1, 65535, 0, 65534, 65535, 1, 65534, 65534, 1, 1, 65534, 1, 1, 1, 1, 0, 1, 1, 65535, 1, 655360, 65534, 1, 655360, 65534, 65532, 1, 65535, 65532, 655360, 65534, 65533, 1, 0, 65532, 655360, 1, 65532, 655360, 1, 65533, 655360, 1, 65531, 655361, 1, 65530, 655360, 1, 65529, 655360, 0, 65529, 655361, 65535, 65529, 655361, 65534, 65529, 655361, 0, 65531, 655361, 0, 65530, 655361, 65533, 65529, 655360, 65532, 65529, 655360, 65533, 65534, 655360, 65533, 65533, 655360, 65533, 65532, 655361, 65533, 65531, 655361, 65533, 65530, 655361, 65532, 65534, 655360, 65532, 65533, 655361, 65532, 65532, 655361, 65532, 65531, 655361, 65532, 65530, 655360, 1, 65528, 655360, 0, 65528, 655360, 65535, 65528, 655361, 65534, 65528, 655361, 65533, 65528, 655361, 65532, 65528, 655360)
+}
+
+[node name="Wallmap" type="GridMap" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9, 0)
+mesh_library = ExtResource("2_wall")
+cell_size = Vector3(2, 4, 2)
+cell_center_x = false
+cell_center_z = false
+data = {
+"cells": PackedInt32Array(65535, 4, 1, 65533, 4, 0, 65532, 1, 1441793, 65532, 3, 1441792, 65532, 65535, 1441792, 1, 4, 0, -1, 65534, 0, -65535, 65534, 0, -65535, 65530, 0, -1, 65530, 0, -2, 65533, 1441792, -2, 65531, 1441792, -65534, 65533, 1441792, -65534, 65531, 1441792, -65532, 3, 1441792, -65532, 1, 1441792, -65532, 65535, 1441792, -65532, 65533, 1441792, -65532, 65531, 1441792, -65532, 65529, 1441792, -1, 65528, 655360, -3, 65528, 655360, -4, 65527, 1048576, -4, 65525, 1048576, -3, 65524, 0, -1, 65524, 0, -65536, 65525, 1441792, -65536, 65527, 1441792, -65532, 65527, 1441792, -65532, 65525, 1441792, -65532, 65523, 1441792, -65532, 65521, 1441792, -65533, 65520, 655360, -65535, 65520, 655360, -1, 65520, 655360, -3, 65520, 655360, -5, 65520, 655360, -7, 65520, 655360, 65531, 65534, 1, 65529, 65534, 655360, 65528, 65533, 1048576, 65528, 65531, 1048577, 65528, 65529, 1048576, 65528, 65527, 1048576, 65528, 65525, 1048577, 65528, 65523, 1048576)
+}
+
+[node name="Couch2" parent="." instance=ExtResource("3_couch")]
+transform = Transform3D(0.07612731, 0, 0.9970981, 0, 1, 0, -0.9970981, 0, 0.07612731, -14.600978, 0, -13.656955)
+
+[node name="Couch3" parent="." instance=ExtResource("3_couch")]
+transform = Transform3D(-0.18146327, 0, 0.98339784, 0, 1, 0, -0.98339784, 0, -0.18146327, -14.600978, 0, -17.127445)
+
+[node name="Couch4" parent="." instance=ExtResource("3_couch")]
+transform = Transform3D(-0.99502087, 0, 0.09966703, 0, 1, 0, -0.09966703, 0, -0.99502087, 1.3046856, 0, 6.637289)
+
+[node name="Barrel_A2" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7684145, 0, -17.78304)
+
+[node name="Barrel_A3" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(0.42079833, 0, 0.9071542, 0, 1, 0, -0.9071542, 0, 0.42079833, 1.7684145, 0, -19.099186)
+
+[node name="Barrel_A4" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.98654664, 0, 0.16348094, 0, 1, 0, -0.16348094, 0, -0.98654664, 2.8190408, 0, -18.424604)
+
+[node name="Barrel_A5" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(0.118854545, 0, 0.9929117, 0, 1, 0, -0.9929117, 0, 0.118854545, 6.9650807, 0, -29.155113)
+
+[node name="Barrel_A6" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.85071033, 0, 0.52563506, 0, 1, 0, -0.52563506, 0, -0.85071033, 5.658263, 0, -29.311543)
+
+[node name="Barrel_A7" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.27957767, 0, -0.9601232, 0, 1, 0, 0.9601232, 0, -0.27957767, 6.4529347, 0, -30.274546)
+
+[node name="Barrel_A8" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.81260264, 0, 0.58281815, 0, 1, 0, -0.58281815, 0, -0.81260264, -5.0522842, 0, -29.906574)
+
+[node name="Barrel_A9" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.8706478, 0, -0.491907, 0, 1, 0, 0.491907, 0, -0.8706478, -5.819358, 0, -28.837069)
+
+[node name="Barrel_A10" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(0.70639086, 0, -0.7078224, 0, 1, 0, 0.7078224, 0, 0.70639086, -6.2799425, 0, -29.99756)
+
+[node name="Barrel_A11" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.81260264, 0, 0.58281815, 0, 1, 0, -0.58281815, 0, -0.81260264, -5.0522842, 0, 5.5542183)
+
+[node name="Barrel_A12" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(-0.8706478, 0, -0.491907, 0, 1, 0, 0.491907, 0, -0.8706478, -5.819358, 0, 6.623724)
+
+[node name="Barrel_A13" parent="." instance=ExtResource("4_barrel")]
+transform = Transform3D(0.70639086, 0, -0.7078224, 0, 1, 0, 0.7078224, 0, 0.70639086, -6.2799425, 0, 5.463232)
+
+[node name="Pit2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, -2, -20)
+material_override = SubResource("StandardMaterial3D_pit")
+mesh = SubResource("PlaneMesh_pit")

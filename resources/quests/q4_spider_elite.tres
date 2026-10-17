@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q4_spider_elite"
+name = "清除毒蛛"
+description = "卫兵队长卡尔：林地中央盘着一只毒蜘蛛精英，蛛网封住了猎人的小路。杀了它，林地才能通行。当心它的毒。"
+objective_text = "击杀毒蜘蛛（精英）"
+objective_type = 0
+target_monster_id = "spider_elite"
+required_count = 1
+min_level = 3
+reward_exp = 400
+reward_gold = 100
+reward_item_id = "bread"
+reward_item_quantity = 3
+prerequisite_quest_id = "q3_worgen_hunt"

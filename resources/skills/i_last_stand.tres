@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/skills/icons/execute.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = "i_last_stand"
+skill_name = "背水一战"
+description = "步兵的脊梁：立即恢复自身 35% 生命并获得 8 点防御，持续 12 秒。冷却 60 秒，消耗 20 点法力。"
+icon = ExtResource("2_icon")
+cooldown = 60.0
+mp_cost = 20
+damage_multiplier = 0.0
+range = 0.0
+animation = &"Emote2"
+target_type = 1
+aoe_radius = 0.0
+is_projectile = false
+projectile_speed = 18.0
+projectile_color = Color(0.6, 0.65, 0.7, 1)
+heal_amount = 0
+heal_percent = 0.35
+slow_factor = 1.0
+slow_duration = 0.0
+dot_amount = 0
+dot_ticks = 0
+dot_interval = 1.0
+hot_amount = 0
+hot_ticks = 0
+hot_interval = 1.0
+buff_atk = 0
+buff_def = 8
+buff_duration = 12.0
+requires_target_hp_below = 0.0

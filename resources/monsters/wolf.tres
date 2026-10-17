@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="MonsterData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/monsters/monster_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/monsters/loot_entry.gd" id="2_loot"]
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_bone"]
+script = ExtResource("2_loot")
+item_id = "bone"
+chance = 0.3
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_sword_iron"]
+script = ExtResource("2_loot")
+item_id = "sword_iron"
+chance = 0.15
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_bread"]
+script = ExtResource("2_loot")
+item_id = "bread"
+chance = 0.1
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_chicken"]
+script = ExtResource("2_loot")
+item_id = "chicken_leg"
+chance = 0.12
+quantity = 1
+
+[resource]
+script = ExtResource("1_data")
+id = "wolf"
+display_name = "野狼"
+level = 1
+max_hp = 60
+atk = 5
+def = 0
+move_speed = 3.6
+attack_range = 2.0
+attack_interval = 1.6
+attack_windup = 0.35
+aggro_radius = 10.0
+leash_radius = 18.0
+respawn_time = 12.0
+is_elite = false
+gold_min = 1
+gold_max = 3
+exp_reward = 12
+loot_table = Array[LootEntry]([SubResource("LootEntry_bone"), SubResource("LootEntry_sword_iron"), SubResource("LootEntry_bread"), SubResource("LootEntry_chicken")])
+palette = "gray"
+scale_factor = 0.8
+hat_id = ""
+weapon_id = ""

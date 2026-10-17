@@ -1,0 +1,66 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/infantry_kaykit/Enemy_Medium.glb" id="1_enemy"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Idle_A.res" id="2_idle"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Running_B.res" id="3_run"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_1H_Attack_Slice_Diagonal.res" id="4_atk1"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Melee_2H_Attack_Chop.res" id="5_atk2"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Death_A.res" id="6_death"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Hit_A.res" id="7_hit"]
+[ext_resource type="Animation" path="res://assets/characters/infantry_kaykit/animations/Spawn_Ground.res" id="8_spawn"]
+[ext_resource type="Script" path="res://scripts/player/weapon_slot.gd" id="9_wslot"]
+[ext_resource type="Script" path="res://scripts/player/foot_bone.gd" id="10_foot"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_orange"]
+shading_mode = 0
+albedo_color = Color(1, 0.5058824, 0, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_orange"]
+top_radius = 0.1
+bottom_radius = 0.1
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_kaykit_enemy"]
+_data = {
+&"Attack1": ExtResource("4_atk1"),
+&"Attack2": ExtResource("5_atk2"),
+&"Death": ExtResource("6_death"),
+&"Hit": ExtResource("7_hit"),
+&"Idle": ExtResource("2_idle"),
+&"Run": ExtResource("3_run"),
+&"Sprint": ExtResource("3_run"),
+&"Spawn": ExtResource("8_spawn")
+}
+
+[node name="KaykitEnemyVisual" type="Node3D"]
+
+[node name="Enemy_Medium" parent="." instance=ExtResource("1_enemy")]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Enemy_Medium"]
+libraries = {
+&"": SubResource("AnimationLibrary_kaykit_enemy")
+}
+
+[node name="WeaponSlot" type="BoneAttachment3D" parent="Enemy_Medium/Rig_Medium/Skeleton3D" index="6"]
+transform = Transform3D(-0.999999, 4.6839318e-07, 4.5751068e-07, 3.9800034e-07, -5.8875344e-07, 0.99999946, 3.9761645e-07, 0.99999946, 5.358822e-07, -0.8831323, 1.0492611, -7.2884757e-07)
+bone_name = "handslot.r"
+bone_idx = 14
+script = ExtResource("9_wslot")
+attack_mode = 1
+
+[node name="OrangeBlade" type="MeshInstance3D" parent="Enemy_Medium/Rig_Medium/Skeleton3D/WeaponSlot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+material_override = SubResource("StandardMaterial3D_orange")
+gi_mode = 0
+mesh = SubResource("CylinderMesh_orange")
+
+[node name="RightFootBone" type="BoneAttachment3D" parent="Enemy_Medium/Rig_Medium/Skeleton3D" index="7"]
+transform = Transform3D(0.9955485, 0.053484496, -0.07761017, 0.029213935, -0.95795643, -0.28542465, -0.089613125, 0.28188783, -0.95525336, 0.19220175, 0.18159741, -0.17942351)
+bone_name = "foot.r"
+bone_idx = 21
+script = ExtResource("10_foot")
+
+[node name="LeftFootBone" type="BoneAttachment3D" parent="Enemy_Medium/Rig_Medium/Skeleton3D" index="8"]
+transform = Transform3D(0.9953074, -0.0717206, 0.06495197, 0.0037766844, -0.64196026, -0.76672864, 0.096686944, 0.763377, -0.6386771, -0.17770933, 0.1875511, 0.1451621)
+bone_name = "foot.l"
+bone_idx = 17
+script = ExtResource("10_foot")

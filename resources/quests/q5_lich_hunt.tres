@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q5_lich_hunt"
+name = "亡灵的侵扰"
+description = "卫兵队长卡尔：森林深处飘起了骨白色的光——亡灵法师在拿尸骨练邪术。趁它们还没成气候，烧掉 4 个。"
+objective_text = "击杀亡灵法师"
+objective_type = 0
+target_monster_id = "lich"
+required_count = 4
+min_level = 4
+reward_exp = 700
+reward_gold = 120
+reward_item_id = "water"
+reward_item_quantity = 3
+prerequisite_quest_id = "q4_spider_elite"

@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://c7mows0f8hnhl"]
+
+[ext_resource type="Texture2D" uid="uid://bslucb5fh6y8q" path="res://assets/characters/infantry_kaykit/mannequin_texture.png" id="1_4cqmf"]
+
+[resource]
+resource_name = "Character_Material"
+albedo_texture = ExtResource("1_4cqmf")
+roughness = 0.3

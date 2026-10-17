@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q3_worgen_hunt"
+name = "狼人的威胁"
+description = "卫兵队长卡尔：林地深处有狼人出没，已经有两个伐木工被咬伤。它们比野兽难缠，带上伤药——不，带上武器。3 只狼人。"
+objective_text = "击杀狼人"
+objective_type = 0
+target_monster_id = "worgen"
+required_count = 3
+min_level = 2
+reward_exp = 250
+reward_gold = 50
+reward_item_id = "helm"
+reward_item_quantity = 1
+prerequisite_quest_id = "q2_boar_hunt"

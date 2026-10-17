@@ -1,0 +1,162 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/environment/tree.tscn" id="1_tree"]
+[ext_resource type="Texture2D" path="res://assets/environment/textures/prototype_ground.png" id="2_tex"]
+[ext_resource type="FontFile" path="res://assets/fonts/Kurland.ttf" id="3_font"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_forest"]
+texture_filter = 5
+albedo_texture = ExtResource("2_tex")
+roughness = 0.9
+uv1_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+material = SubResource("StandardMaterial3D_forest")
+size = Vector3(110, 0.4, 100)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(110, 0.4, 100)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+material = SubResource("StandardMaterial3D_forest")
+size = Vector3(110, 3, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
+size = Vector3(110, 3, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_east"]
+material = SubResource("StandardMaterial3D_forest")
+size = Vector3(1, 3, 100)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall_east"]
+size = Vector3(1, 3, 100)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_rock"]
+material = SubResource("StandardMaterial3D_forest")
+top_radius = 0.35
+bottom_radius = 0.8
+height = 0.9
+radial_segments = 6
+
+[node name="Forest" type="Node3D"]
+auto_translate_mode = 1
+
+[node name="Geometry" type="StaticBody3D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="FloorMesh" type="MeshInstance3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.2, 0)
+mesh = SubResource("BoxMesh_floor")
+
+[node name="FloorCollision" type="CollisionShape3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, -0.2, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="WallNorthMesh" type="MeshInstance3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 1.5, -49.5)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="WallNorthCollision" type="CollisionShape3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 1.5, -49.5)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WallSouthMesh" type="MeshInstance3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 1.5, 49.5)
+mesh = SubResource("BoxMesh_wall")
+
+[node name="WallSouthCollision" type="CollisionShape3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105, 1.5, 49.5)
+shape = SubResource("BoxShape3D_wall")
+
+[node name="WallEastMesh" type="MeshInstance3D" parent="Geometry"]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 155, 1.5, 0)
+mesh = SubResource("BoxMesh_wall_east")
+
+[node name="WallEastCollision" type="CollisionShape3D" parent="Geometry"]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 155, 1.5, 0)
+shape = SubResource("BoxShape3D_wall_east")
+
+[node name="Trees" type="Node3D" parent="."]
+
+[node name="Tree01" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 0, -20)
+
+[node name="Tree02" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 55, 0, 18)
+
+[node name="Tree03" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 58, 0, -28)
+
+[node name="Tree04" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 62, 0, 22)
+
+[node name="Tree05" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, -20)
+
+[node name="Tree06" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 68, 0, 26)
+
+[node name="Tree07" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(0.95, 0, 0, 0, 0.95, 0, 0, 0, 0.95, 72, 0, -26)
+
+[node name="Tree08" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.15, 0, 0, 0, 1.15, 0, 0, 0, 1.15, 76, 0, 20)
+
+[node name="Tree09" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, 0, -24)
+
+[node name="Tree10" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 86, 0, 18)
+
+[node name="Tree11" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.05, 0, 0, 0, 1.05, 0, 0, 0, 1.05, 92, 0, 24)
+
+[node name="Tree12" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(0.9, 0, 0, 0, 0.9, 0, 0, 0, 0.9, 96, 0, -20)
+
+[node name="Tree13" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 102, 0, 26)
+
+[node name="Tree14" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108, 0, -22)
+
+[node name="Tree15" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 116, 0, 22)
+
+[node name="Tree16" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.35, 0, 0, 0, 1.35, 0, 0, 0, 1.35, 128, 0, -24)
+
+[node name="Tree17" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 134, 0, 20)
+
+[node name="Tree18" parent="Trees" instance=ExtResource("1_tree")]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 146, 0, -20)
+
+[node name="Rocks" type="Node3D" parent="."]
+
+[node name="Rock01" type="MeshInstance3D" parent="Rocks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0.4, 14)
+mesh = SubResource("CylinderMesh_rock")
+
+[node name="Rock02" type="MeshInstance3D" parent="Rocks"]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 100, 0.5, -16)
+mesh = SubResource("CylinderMesh_rock")
+
+[node name="Rock03" type="MeshInstance3D" parent="Rocks"]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 120, 0.45, 18)
+mesh = SubResource("CylinderMesh_rock")
+
+[node name="Rock04" type="MeshInstance3D" parent="Rocks"]
+transform = Transform3D(1.6, 0, 0, 0, 1.6, 0, 0, 0, 1.6, 140, 0.6, 10)
+mesh = SubResource("CylinderMesh_rock")
+
+[node name="EntrySign" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53, 2.8, 4)
+billboard = 1
+no_depth_test = true
+outline_size = 16
+outline_modulate = Color(0, 0, 0, 1)
+pixel_size = 0.08
+text = "森林 · 小心野狼！"
+font = ExtResource("3_font")

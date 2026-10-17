@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="MonsterData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/monsters/monster_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/monsters/loot_entry.gd" id="2_loot"]
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_circlet"]
+script = ExtResource("2_loot")
+item_id = "circlet"
+chance = 0.15
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_water"]
+script = ExtResource("2_loot")
+item_id = "water"
+chance = 0.25
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_bread"]
+script = ExtResource("2_loot")
+item_id = "bread"
+chance = 0.2
+quantity = 1
+
+[sub_resource type="Resource" script_class="LootEntry" id="LootEntry_chicken"]
+script = ExtResource("2_loot")
+item_id = "chicken_leg"
+chance = 0.2
+quantity = 1
+
+[resource]
+script = ExtResource("1_data")
+id = "lich"
+display_name = "亡灵法师"
+level = 7
+max_hp = 200
+atk = 14
+def = 2
+move_speed = 3.0
+attack_range = 8.0
+attack_interval = 2.2
+attack_windup = 0.6
+aggro_radius = 15.0
+leash_radius = 24.0
+respawn_time = 22.0
+is_elite = false
+gold_min = 8
+gold_max = 15
+exp_reward = 60
+loot_table = Array[LootEntry]([SubResource("LootEntry_circlet"), SubResource("LootEntry_water"), SubResource("LootEntry_bread"), SubResource("LootEntry_chicken")])
+palette = "bone"
+scale_factor = 1.05
+hat_id = "wizard_hat"
+weapon_id = ""

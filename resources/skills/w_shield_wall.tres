@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/skills/icons/shield_wall.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = "w_shield_wall"
+skill_name = "盾墙"
+description = "举盾防御，8 秒内防御提升 10 点。冷却 20 秒，消耗 12 点法力。"
+icon = ExtResource("2_icon")
+cooldown = 20.0
+mp_cost = 12
+damage_multiplier = 0.0
+range = 0.0
+animation = &"Emote2"
+target_type = 1
+aoe_radius = 0.0
+is_projectile = false
+projectile_speed = 18.0
+projectile_color = Color(1, 0.55, 0.15, 1)
+heal_amount = 0
+heal_percent = 0.0
+slow_factor = 1.0
+slow_duration = 0.0
+dot_amount = 0
+dot_ticks = 0
+dot_interval = 1.0
+hot_amount = 0
+hot_ticks = 0
+hot_interval = 1.0
+buff_atk = 0
+buff_def = 10
+buff_duration = 8.0
+requires_target_hp_below = 0.0

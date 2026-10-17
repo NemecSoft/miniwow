@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/skills/icons/flash_heal.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = "p_flash_heal"
+skill_name = "快速治疗"
+description = "圣光闪过，立即恢复目标 30% 最大生命（对准队友释放则治疗队友，否则治疗自己）。冷却 6 秒，消耗 18 点法力。"
+icon = ExtResource("2_icon")
+cooldown = 6.0
+mp_cost = 18
+damage_multiplier = 0.0
+range = 12.0
+animation = &"Emote2"
+target_type = 2
+aoe_radius = 0.0
+is_projectile = false
+projectile_speed = 18.0
+projectile_color = Color(0.3, 0.9, 0.5, 1)
+heal_amount = 0
+heal_percent = 0.3
+slow_factor = 1.0
+slow_duration = 0.0
+dot_amount = 0
+dot_ticks = 0
+dot_interval = 1.0
+hot_amount = 0
+hot_ticks = 0
+hot_interval = 1.0
+buff_atk = 0
+buff_def = 0
+buff_duration = 0.0
+requires_target_hp_below = 0.0

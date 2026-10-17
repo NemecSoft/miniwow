@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ClassData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/classes/class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+id = "warrior"
+display_name = "战士"
+description = "坚实的前排。生命与防御最高，贴近敌人用重击和斩杀开路，旋风扫清围攻。"
+base_max_hp = 160
+base_max_mp = 30
+base_atk = 14
+base_def = 6
+skill_ids = Array[String](["heavy_strike", "w_whirlwind", "w_shield_wall", "w_execute"])
