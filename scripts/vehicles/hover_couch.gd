@@ -77,19 +77,22 @@ func _physics_process(delta: float) -> void:
 	# W/S/A/D = 相机相对水平移动；空格升 / C 降；Shift 加速；move_and_slide 物理挡山
 	var driver := get_driver_id()
 	if driver == local_id and driver != 0:
+		# WoW 驭空式：沙发朝向跟随镜头 yaw；W 沿镜头视线飞（含俯仰——
+		# 右键压镜头 + W = 俯冲落地）。防穿由 _terrain_data 采样保证（已修复）
 		var cam := get_viewport().get_camera_3d()
-		var forward := -global_transform.basis.z
-		var right := global_transform.basis.x
+		var cam_fwd := -global_transform.basis.z
+		var cam_yaw := rotation.y
 		if cam != null:
-			var cam_basis := cam.global_transform.basis
-			forward = -Vector3(cam_basis.z.x, 0, cam_basis.z.z).normalized()
-			right = Vector3(cam_basis.x.x, 0, cam_basis.x.z).normalized()
-		var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+			cam_fwd = -cam.global_transform.basis.z
+			cam_yaw = atan2(-cam_fwd.x, -cam_fwd.z)
+		rotation.y = lerp_angle(rotation.y, cam_yaw, 10.0 * delta)
+
+		var move := Input.get_axis("move_backward", "move_forward")
 		var speed := FLIGHT_SPEED
 		if Input.is_action_pressed("shift"):
 			speed = BOOST_SPEED
-		var vel := (forward * -input_dir.y + right * input_dir.x).normalized() * speed \
-				if input_dir.length() > 0.1 else Vector3.ZERO
+		var vel := cam_fwd * speed * move if move > 0.0 else \
+				Vector3(-cam_fwd.x, 0, -cam_fwd.z).normalized() * speed * 0.4 * minf(move, 0.0)
 
 		var up := 0.0
 		if Input.is_action_pressed("jump"):

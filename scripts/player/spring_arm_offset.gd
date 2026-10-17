@@ -17,6 +17,7 @@ const MOUSE_SENSIBILITY: float = 0.005
 @export_range(1.0, 179.0, 1.0) var first_person_fov := 90.0
 
 var is_first_person := false
+var _orbiting := false
 var _yaw := 0.0
 var _pitch := 0.0
 
@@ -48,6 +49,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# M19 WoW 式：按住右键隐藏指针并转视角，松开恢复可见
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if event.pressed else Input.MOUSE_MODE_VISIBLE
+	# M19：左键按住 = 环绕观察模式
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_orbiting = event.pressed
 
 	if event.is_action_pressed("toggle_camera"):
 		is_first_person = not is_first_person
@@ -58,8 +62,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if not (event is InputEventMouseMotion):
 		return
-	# M19 WoW 式：只有按住右键时才转视角（指针由 level.gd 统一管理）
-	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+	# M19 WoW 式：右键按住 = 瞄准转向；左键按住 = 环绕观察（都不转角色）
+	if not (Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or _orbiting):
 		return
 
 	_yaw = wrapf(_yaw - event.relative.x * MOUSE_SENSIBILITY, -PI, PI)

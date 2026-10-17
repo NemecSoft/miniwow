@@ -332,8 +332,10 @@ func _physics_process(delta):
 		velocity = Vector3.ZERO
 		global_position = mounted_vehicle.global_position \
 				+ mounted_vehicle.get_seat_offset(mounted_seat)
-		# 角色朝向 = 飞行器朝向（用户要求：上车后不再随鼠标转角色）
+		# 角色朝向 = 飞行器前方（视觉 body 朝向，复用 apply_rotation）
 		rotation.y = mounted_vehicle.rotation.y
+		if _body != null:
+			_body.apply_rotation(-mounted_vehicle.global_transform.basis.z)
 		return
 
 	# 死亡后冻结一切输入（表现层播 Fall 动画），直到释放灵魂回村复活

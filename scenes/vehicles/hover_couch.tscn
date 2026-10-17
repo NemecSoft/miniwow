@@ -34,7 +34,7 @@ script = ExtResource("1_hc")
 
 
 [node name="CouchModel" parent="." instance=ExtResource("2_couch")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.35, 0)
 
 [node name="HoverRing" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.15, 0)
