@@ -41,7 +41,7 @@ const WEAPON_SCENES := {
 }
 
 var data: MonsterData = null
-var state: State = State.IDLE
+var state: Monster.State = Monster.State.IDLE
 var threat: Dictionary = {} # peer_id -> 累计伤害（仅服务器）
 var current_target_peer := 0
 

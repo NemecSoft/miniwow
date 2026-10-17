@@ -29,6 +29,7 @@ var _terrain_data: Terrain3DData = null
 
 
 func _ready() -> void:
+	add_to_group("vehicles")
 	if DisplayServer.get_name() == "headless":
 		set_physics_process(false)
 		return
