@@ -142,7 +142,7 @@ mesh = SubResource("CylinderMesh_handle")
 stream = ExtResource("16_fire")
 volume_db = 10.0
 max_db = 5.0
-bus = &"Master"
+bus = &"SFX"
 
 [node name="RightFootBone" type="BoneAttachment3D" parent="Mannequin/Rig_Medium/Skeleton3D" index="7"]
 transform = Transform3D(0.9969337, -0.04310859, 0.065302916, 0.019372532, -0.6726018, -0.7397508, 0.075812615, 0.7387489, -0.66970444, -0.17747284, 0.15463437, 0.14311172)
@@ -154,7 +154,7 @@ script = ExtResource("17_foot")
 stream = SubResource("AudioStreamRandomizer_feet")
 volume_db = -3.0
 max_db = -3.0
-bus = &"Master"
+bus = &"SFX"
 
 [node name="LeftFootBone" type="BoneAttachment3D" parent="Mannequin/Rig_Medium/Skeleton3D" index="8"]
 transform = Transform3D(0.9967874, 0.055145025, -0.0580888, 0.024201557, -0.89871144, -0.43787342, -0.07635177, 0.43506253, -0.8971578, 0.18914177, 0.17295554, -0.18798341)
@@ -166,15 +166,15 @@ script = ExtResource("17_foot")
 stream = SubResource("AudioStreamRandomizer_feet")
 volume_db = -3.0
 max_db = -3.0
-bus = &"Master"
+bus = &"SFX"
 
 [node name="DamageAudio" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("22_mhit")
-bus = &"Master"
+bus = &"SFX"
 
 [node name="DashAudio" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("23_dash")
-bus = &"Master"
+bus = &"SFX"
 
 [connection signal="slash" from="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot" to="Mannequin/Rig_Medium/Skeleton3D/WeaponSlot/AttackAudio" method="play"]
 [connection signal="footstep" from="Mannequin/Rig_Medium/Skeleton3D/RightFootBone" to="Mannequin/Rig_Medium/Skeleton3D/RightFootBone/AudioStreamPlayer3D" method="play"]

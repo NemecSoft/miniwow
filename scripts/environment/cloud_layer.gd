@@ -14,6 +14,11 @@ const HEIGHT_MAX := 78.0
 const Z_CENTER := 45.0 ## 世界内容集中在 z∈[-30,155]，云层覆盖之
 
 
+## M43 性能：缓存云簇引用。原实现每帧 get_children() 分配一个新数组再过滤，
+## 60fps 下每秒 60 次无谓分配（GDScript Array 拷贝）——云是静态建的，缓存即可。
+var _clusters: Array[Node3D] = []
+
+
 func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261016
@@ -50,11 +55,13 @@ func _ready() -> void:
 			)
 			cluster.add_child(blob)
 		add_child(cluster)
+		_clusters.append(cluster)
 
 
 func _process(delta: float) -> void:
-	for cluster in get_children():
-		if cluster is Node3D:
-			cluster.position.x += DRIFT_SPEED * delta
-			if cluster.position.x > WRAP_MAX_X:
-				cluster.position.x -= (WRAP_MAX_X - WRAP_MIN_X)
+	for cluster in _clusters:
+		if not is_instance_valid(cluster):
+			continue
+		cluster.position.x += DRIFT_SPEED * delta
+		if cluster.position.x > WRAP_MAX_X:
+			cluster.position.x -= (WRAP_MAX_X - WRAP_MIN_X)

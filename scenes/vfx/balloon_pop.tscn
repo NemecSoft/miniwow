@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://assets/vfx/self_destroy_particles.gd" id="1_destroy"]
+
+[sub_resource type="Gradient" id="Gradient_pop"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 0.95, 0.75, 1, 0.95, 0.35, 0.15, 1, 0.6, 0.15, 0.1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_pop"]
+gradient = SubResource("Gradient_pop")
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 0.8), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_scale"]
+curve = SubResource("Curve_scale")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_pop"]
+direction = Vector3(0, 1, 0)
+spread = 180.0
+flatness = 0.4
+initial_velocity_min = 3.0
+initial_velocity_max = 7.0
+gravity = Vector3(0, -7, 0)
+scale_curve = SubResource("CurveTexture_scale")
+color_ramp = SubResource("GradientTexture1D_pop")
+
+[sub_resource type="QuadMesh" id="QuadMesh_pop"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pop"]
+albedo_color = Color(1, 1, 1, 1)
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 2.0
+vertex_color_use_as_albedo = true
+billboard_mode = 1
+
+[node name="BalloonPop" type="GPUParticles3D"]
+cast_shadow = 0
+amount = 28
+lifetime = 0.9
+explosiveness = 1.0
+process_material = SubResource("ParticleProcessMaterial_pop")
+draw_pass_1 = SubResource("QuadMesh_pop")
+surface_material_override/0 = SubResource("StandardMaterial3D_pop")
+script = ExtResource("1_destroy")

@@ -1,17 +1,29 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/vehicles/hover_couch.gd" id="1_hc"]
 [ext_resource type="PackedScene" path="res://assets/kaykit_env/Couch.gltf" id="2_couch"]
 
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_couch"]
+properties/0/path = NodePath(".:bot_only")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:position")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:rotation")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ring"]
-albedo_color = Color(0.3, 0.7, 1, 1)
+transparency = 1
+albedo_color = Color(0.3, 0.7, 1, 0.85)
 emission_enabled = true
 emission = Color(0.3, 0.7, 1, 1)
 emission_energy_multiplier = 2.5
 
 [sub_resource type="TorusMesh" id="TorusMesh_ring"]
-inner_radius = 0.9
-outer_radius = 1.15
+inner_radius = 1.45
+outer_radius = 1.75
 
 [sub_resource type="FontFile" path="res://assets/fonts/Kurland.ttf" id="6_font"]
 
@@ -22,7 +34,7 @@ script = ExtResource("1_hc")
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.35, 0)
 
 [node name="HoverRing" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
 mesh = SubResource("TorusMesh_ring")
 surface_material_override/0 = SubResource("StandardMaterial3D_ring")
 
@@ -33,6 +45,9 @@ no_depth_test = true
 outline_size = 6
 outline_modulate = Color(0, 0, 0, 1)
 pixel_size = 0.02
-text = "X - 召唤沙发飞行器"
+text = "E - 骑乘飞行器"
 font = SubResource("6_font")
 font_size = 16
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_couch")

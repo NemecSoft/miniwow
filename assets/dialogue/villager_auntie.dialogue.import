@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://u06rsp0jcg5f"
+path="res://.godot/imported/villager_auntie.dialogue-44d55d93c12d7529dd0c9f0338712bc5.tres"
+
+[deps]
+
+source_file="res://assets/dialogue/villager_auntie.dialogue"
+dest_files=["res://.godot/imported/villager_auntie.dialogue-44d55d93c12d7529dd0c9f0338712bc5.tres"]
+
+[params]
+
+defaults=true

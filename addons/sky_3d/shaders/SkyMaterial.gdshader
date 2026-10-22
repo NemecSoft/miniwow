@@ -11,6 +11,11 @@ uniform vec4 ground_color: source_color = vec4(0.3, 0.3, 0.3, 1.0);
 uniform float horizon_offset = 0.0;
 
 group_uniforms atmosphere;
+// 【MiniWoW 球面世界补丁】"天顶"不再是世界 +Y，而是观察者所在地法线。
+// 平面世界里两者等价；球面上站在 -X 面时天顶是 -X，用世界 +Y 当地平线会把
+// 整个天空算成地平线色（M45 起的"天空纯色/无渐变"根因）。
+// 由 ForestStarter 每帧写入相机所在地法线。
+uniform vec3 planet_up = vec3(0.0, 1.0, 0.0);
 uniform float atm_darkness = 0.5;
 uniform float atm_sun_intensity = 18.0;
 uniform vec4 atm_day_tint: source_color = vec4(0.808, 0.91, 1.0, 1.0);
@@ -331,19 +336,22 @@ vec3 render_sky(vec3 world_pos, vec3 clouds_pos, vec3 sun_pos, vec3 moon_pos, fl
 	vec3 col = vec3(0.0);
 
 	vec4 angle_mult;
-	angle_mult.x = clamp_to_unit(1.0 - sun_pos.y);
-	angle_mult.y = clamp_to_unit(sun_pos.y + 0.45);
-	angle_mult.z = clamp_to_unit(-sun_pos.y + 0.30);
-	angle_mult.w = clamp_to_unit(-sun_pos.y + 0.60);
+	// 【MiniWoW】太阳"高度"取相对当地法线的分量，而不是世界 Y
+	float sun_up = dot(sun_pos, planet_up);
+	angle_mult.x = clamp_to_unit(1.0 - sun_up);
+	angle_mult.y = clamp_to_unit(sun_up + 0.45);
+	angle_mult.z = clamp_to_unit(-sun_up + 0.30);
+	angle_mult.w = clamp_to_unit(-sun_up + 0.60);
 
 	// Atmosphere
 	vec2 mu = vec2(dot(sun_pos, world_pos), dot(moon_pos, world_pos));
 	float sr, sm;
-	calc_simple_optical_depth(world_pos.y + atm_level_params.z - horizon_offset, sr, sm, atm_level_params.xy);
+	calc_simple_optical_depth(dot(world_pos, planet_up) + atm_level_params.z - horizon_offset, sr, sm, atm_level_params.xy);
 
-	world_pos.y -= horizon_offset;
-	float horizonBlend = clamp_to_unit((world_pos.y - 0.03) * 3.0);
-	float horizonBlendCumulus = clamp_to_unit((world_pos.y + 0.01) * 50.0);
+	world_pos -= planet_up * horizon_offset;
+	float up_amt = dot(world_pos, planet_up);
+	float horizonBlend = clamp_to_unit((up_amt - 0.03) * 3.0);
+	float horizonBlendCumulus = clamp_to_unit((up_amt + 0.01) * 50.0);
 
 	vec3 scatter = calc_atmospheric_scatter(sr, sm, mu.xy, angle_mult.xyz);
 	col.rgb += scatter.rgb;
@@ -418,7 +426,10 @@ vec3 render_sky(vec3 world_pos, vec3 clouds_pos, vec3 sun_pos, vec3 moon_pos, fl
 		col.rgb = mix(col.rgb, cumulus_clouds.rgb + mix(vec3(0.0), scatter, cumulus_sky_tint_fade), cumulus_clouds.a);
 	}
 
-	col.rgb = mix(col.rgb, ground_color.rgb * scatter, clamp_to_unit((-world_pos.y - atm_level_params.z) * 100.0));
+	// 【M47】地平线以下是"行星地面"色。原来过渡系数 100.0 意味着过渡带只有
+	// 0.01 的天空坐标宽 —— 视觉上就是一条硬边横带（用户截图：地平线处一条
+	// 深红硬边，把画面从中间劈开）。改成 10.0，过渡带约 0.1，柔和得多。
+	col.rgb = mix(col.rgb, ground_color.rgb * scatter, clamp_to_unit((-dot(world_pos, planet_up) - atm_level_params.z) * 10.0));
 	col.rgb = apply_photo_tonemap(col.rgb, color_correction.y, color_correction.x);
 	return col;
 }
@@ -490,7 +501,24 @@ void sky() {
 	float current_time = TIME;
 	vec3 col = vec3(0.0); // Set up the initial sky color which will be added to later to produce the final result.
 	vec3 world_pos = EYEDIR; // Original shader set this up in the vertex() function. For sky shaders the overall equivalent is EYEDIR.
-	vec3 clouds_pos = EYEDIR; // The same is used for cloud rendering.
+	// 【MiniWoW】云的视线方向必须转到**观察者当地坐标系**。
+	//
+	// 原生代码直接拿 EYEDIR 当云坐标，`render_cirrus_clouds()` 里做球面投影
+	// `pos.xz / pos.y` —— 也就是把 y 当"仰角余弦"。平面地图上 y=1 是天顶，
+	// 没问题；但在球面上世界 +Y 只是地平线上的一个方向：观察者站在
+	// (0.994, -0.108, 0.005) 这种法线处时，**当地天顶的世界 y 只有 -0.108**，
+	// xz/y 直接爆炸成高频噪声 → 天空出现从头顶放射的白色竖条纹。
+	//
+	// 把 EYEDIR 用当地正交基重新表达后，天顶恒为 +1、地平线恒为 0，
+	// 无论玩家站在星球哪个角落，云的表现都和平面时代一致。
+	vec3 clouds_pos = EYEDIR;
+	{
+		vec3 lu = normalize(planet_up);
+		vec3 ref = abs(lu.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+		vec3 lx = normalize(cross(ref, lu));
+		vec3 lz = cross(lx, lu);
+		clouds_pos = vec3(dot(EYEDIR, lx), dot(EYEDIR, lu), dot(EYEDIR, lz));
+	}
 	vec3 sun_pos = LIGHT0_DIRECTION; // Redefined from now-deprecated _sun_direction.
 	vec3 moon_pos = LIGHT1_DIRECTION; // Redefined from now-deprecated _moon_direction.
 

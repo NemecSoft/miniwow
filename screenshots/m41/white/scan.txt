@@ -1,0 +1,15 @@
+===== 白板（alb 全 > 0.82，无贴图）共 4 =====
+/root/Level/AirVehicle/PlaneModel/Airplane | size=(16.94, 3.83, 17.2) | c=(59.2, 51.7, 13.9) | d=160.5 | StandardMaterial3D | parent=PlaneModel | alb=(1.0, 1.0, 1.0, 1.0)
+/root/Level/ClassSelectUI/CenterContainer/Panel/MarginContainer/VBoxContainer/CardContainer/@VBoxContainer@820/@SubViewportContainer@814/@SubViewport@808/@Node3D@812/GodotRobot3D/RobotArmature/Skeleton3D/LimbsAndHead | size=(0.94, 0.96, 0.91) | c=(0.0, -0.2, -0.1) | d=124.2 | StandardMaterial3D | parent=Skeleton3D | alb=(1.0, 1.0, 1.0, 1.0)
+/root/Level/ClassSelectUI/CenterContainer/Panel/MarginContainer/VBoxContainer/CardContainer/@VBoxContainer@834/@SubViewportContainer@828/@SubViewport@822/@Node3D@826/GodotRobot3D/RobotArmature/Skeleton3D/LimbsAndHead | size=(0.94, 0.96, 0.91) | c=(0.0, -0.2, -0.1) | d=124.2 | StandardMaterial3D | parent=Skeleton3D | alb=(1.0, 1.0, 1.0, 1.0)
+/root/Level/ClassSelectUI/CenterContainer/Panel/MarginContainer/VBoxContainer/CardContainer/@VBoxContainer@848/@SubViewportContainer@842/@SubViewport@836/@Node3D@840/GodotRobot3D/RobotArmature/Skeleton3D/LimbsAndHead | size=(0.94, 0.96, 0.91) | c=(0.0, -0.2, -0.1) | d=124.2 | StandardMaterial3D | parent=Skeleton3D | alb=(1.0, 1.0, 1.0, 1.0)
+
+===== 黑板（alb 全 < 0.08，无贴图）共 4 =====
+/root/Level/Environment/KaykitArena2/Pit2 | size=(8.0, 0.0, 8.0) | c=(56.0, 0.5, -150.0) | d=69.2 | StandardMaterial3D | parent=KaykitArena2 | alb=(0.0, 0.0, 0.0, 1.0)
+/root/Level/Environment/KaykitArena3/Pit2 | size=(8.0, 0.0, 8.0) | c=(-64.0, 0.5, -150.0) | d=61.8 | StandardMaterial3D | parent=KaykitArena3 | alb=(0.0, 0.0, 0.0, 1.0)
+/root/Level/Environment/KaykitArena3/Pit3 | size=(8.0, 0.0, 8.0) | c=(-73.0, 0.5, -138.0) | d=66.6 | StandardMaterial3D | parent=KaykitArena3 | alb=(0.0, 0.0, 0.0, 1.0)
+/root/Level/Environment/KaykitArena3/Pit4 | size=(8.0, 0.0, 8.0) | c=(-60.0, 0.5, -122.0) | d=52.2 | StandardMaterial3D | parent=KaykitArena3 | alb=(0.0, 0.0, 0.0, 1.0)
+
+===== 完全无材质（引擎默认白）共 2 =====
+/root/Level/Environment/SignPost | size=(0.35, 2.0, 0.35) | c=(0.0, 5.5, -120.0) | d=9.1 | null | parent=Environment | alb=-
+/root/Level/Environment/ClassTrainer/SelectionRing | size=(1.3, 1.3, 0.1) | c=(14.0, 2.4, -132.0) | d=23.5 | null | parent=ClassTrainer | alb=-

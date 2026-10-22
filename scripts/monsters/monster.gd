@@ -60,6 +60,10 @@ func is_stunned() -> bool:
 	return Time.get_ticks_msec() < _stun_until_msec
 
 func add_knockback(force: Vector3) -> void:
+	# M37 诊断：击退力若为 NaN，会把怪物 velocity 写成 NaN → 位置 NaN → 全场刷屏
+	if not (is_finite(force.x) and is_finite(force.y) and is_finite(force.z)):
+		printerr("KNOCK-NAN: %s force=%s" % [name, str(force)])
+		return
 	_knockback = (_knockback + force).limit_length(KNOCKBACK_MAX)
 	_stun_until_msec = Time.get_ticks_msec() + STUN_DURATION_MSEC
 	# 硬直表现：打断当前攻击前摇，定身待机（怪物库无受击动画，用 Idle 定格）
@@ -116,6 +120,30 @@ func _ready() -> void:
 	add_to_group("monsters")
 	_play_anim(&"Idle")
 	_state_timer = randf_range(0.5, 2.0)
+	# M25d 条款 C3：进世界兜底贴地（主要靠 level._snap_ground_actors 等
+	# terrain 就绪后统一贴地；此处探得到就先贴，探不到不动）
+	_snap_to_ground()
+
+
+## M25d：出生/重生统一贴地（docs/conventions-spawn-ground.md C2~C4）。
+## tscn 的 y 是估算占位；探到真实地面就更新 home_position 与自身位置
+## ——AI（巡逻/重生/深渊自愈）全部锚定 home_position，必须一起回写。
+func _snap_to_ground() -> void:
+	var terrain_data: Terrain3DData = null
+	var starter := get_node_or_null("/root/Level/Environment/TerrainStarter")
+	if starter != null and starter.terrain != null:
+		terrain_data = starter.terrain.data
+	# C5：排除自身碰撞体（CharacterBody3D 会挡住自己的贴地射线）
+	var exclude: Array[RID] = [get_rid()]
+	var h := GroundQuery.resolve(get_world_3d(), terrain_data, home_position, exclude)
+	if is_nan(h):
+		# C6 报警：脚下探不到任何地面 = 非法刷点（GridMap 空洞/断崖），
+		# 该怪会自由落体掉洞——必须把 tscn 刷点挪到已验证地面（M25d 实测事故）
+		printerr("SPAWN_WARN: %s 刷点 (%.0f, %.0f) 探不到地面，将掉落——请挪点！" % [
+			monster_id, home_position.x, home_position.z])
+		return
+	home_position.y = h + 0.05
+	global_position = home_position
 
 
 # ===== 外观 =====
@@ -173,7 +201,19 @@ func _spawn_equipment(attach: Node, scenes: Dictionary, item_id: String) -> void
 	var packed := load(scene_path) as PackedScene
 	if packed == null:
 		return
-	attach.add_child(packed.instantiate())
+	var instance := packed.instantiate()
+	# M25d：装备是纯视觉挂件——帽子/武器本体是 RigidBody3D（可拾取物品），
+	# 挂上骨骼后若保留碰撞会挡住贴地射线（实测：巫妖被自己的法师帽垫高 3.6m，
+	# home_position 锚在帽顶）、还可能被物理推开漂移。冻结物理 + 碰撞归零。
+	if instance is RigidBody3D:
+		var rb := instance as RigidBody3D
+		rb.freeze = true
+		rb.collision_layer = 0
+		rb.collision_mask = 0
+	elif instance is CollisionObject3D:
+		(instance as CollisionObject3D).collision_layer = 0
+		(instance as CollisionObject3D).collision_mask = 0
+	attach.add_child(instance)
 
 
 func _name_color(aggroed: bool) -> Color:
@@ -197,6 +237,8 @@ func apply_combat_damage(amount: int, source_peer_id: int, is_crit: bool) -> voi
 	if source_peer_id > 0:
 		threat[source_peer_id] = int(threat.get(source_peer_id, 0)) + amount
 		_last_attacker_peer = source_peer_id
+		# M24：好感度系统——记录"谁打过这只怪"，玩家+bot 同怪即构成协作对
+		RelationshipManager.record_monster_hit(self, source_peer_id)
 	var applied := attribute_set.apply_damage(amount)
 	if applied <= 0:
 		return
@@ -250,9 +292,10 @@ func _on_died() -> void:
 	_set_aggro_broadcast(false)
 	_broadcast_anim(&"Fall")
 	_respawn_countdown = data.respawn_time
-	threat.clear()
 	current_target_peer = 0
+	# M24：先结算（共享任务进度要遍历 threat），再清威胁表
 	_reward_killer()
+	threat.clear()
 
 
 func _reward_killer() -> void:
@@ -261,12 +304,19 @@ func _reward_killer() -> void:
 	var killer := _get_player_nodes().get(_last_attacker_peer) as Character
 	if killer == null or not killer.attribute_set.is_alive():
 		return
+	printerr("KILL_DIAG: %s 被杀 killer=%d threat_peers=%s" % [
+		data.id, _last_attacker_peer, threat.keys()])  # 临时诊断
 	var gold := randi_range(data.gold_min, data.gold_max)
 	killer.add_gold(gold)
 	# M4：击杀经验 + 任务击杀进度（仅发给最后一下的玩家）
 	if data.exp_reward > 0:
 		killer.add_experience(data.exp_reward)
-	killer.add_quest_kill_progress(data.id)
+	# M24：任务击杀进度共享——威胁表内所有参与攻击的玩家都计数（MMO 协作击杀惯例）。
+	# 原实现只记最后一击，4 个 bot 集火杀 1 只狼只有 1 人进度+1。
+	for peer in threat:
+		var participant := _get_player_nodes().get(int(peer)) as Character
+		if participant != null:
+			participant.add_quest_kill_progress(data.id)
 	# M8：按掉落表 roll 装备/材料，掉到地上变成世界掉落物（玩家按 E 拾取）
 	var loot_names: Array[String] = []
 	var world_drops := _get_world_drops()
@@ -302,12 +352,51 @@ func _get_world_drops() -> WorldDrops:
 
 # ===== AI 状态机（仅服务器）=====
 
+var _mup := Vector3.UP
+var _mgrounded := false
+
+
+func _planet_step(_delta: float) -> void:
+	## M45：球面贴地 —— 球面地形没有碰撞体，靠解析吸附把怪物钉在星球表面。
+	var p := global_position
+	if not (is_finite(p.x) and is_finite(p.y) and is_finite(p.z)):
+		return
+	var up := Planet.up_at(p)
+	_mup = up
+	up_direction = up
+	var ground_r: float = Planet.RADIUS + Planet.mesh_height(up)
+	var r: float = p.length()
+	if r < ground_r:
+		global_position = p + up * (ground_r - r)
+		_mgrounded = true
+		var vr: float = velocity.dot(up)
+		if vr < 0.0:
+			velocity -= up * vr
+	else:
+		_mgrounded = (r - ground_r) < 0.35
+	# 保留 AI 写入的朝向，只把基座扶正到当地切平面
+	var t := global_transform
+	t.basis = Planet.align_basis(up, t.basis * Vector3.FORWARD)
+	global_transform = t
+
+
 func _physics_process(delta: float) -> void:
+	_planet_step(delta)
 	if multiplayer.multiplayer_peer == null or not multiplayer.is_server() or data == null:
 		return
 	if not attribute_set.is_alive():
 		_process_respawn(delta)
 		return
+	# M24：掉深渊自愈——patrol/击退出界坠落数十米深（地形断崖无底），
+	# 怪永远回不来（实测狼 y 坠到 -123）。低于刷新点 30m 直接传回。
+	# M25d 条款 C3：归位必须重新贴地（home_position 已被 snap 修正，
+	# respawn 期间地形可能被改，归位点每次重探）
+	# M45：掉深渊判定改成"半径低于地表 30m"（球面上 y 不再是高度）
+	var _mu := Planet.up_at(global_position)
+	var _gr: float = Planet.RADIUS + Planet.mesh_height(_mu)
+	if global_position.length() < _gr - 30.0:
+		global_position = home_position
+		velocity = Vector3.ZERO
 	_apply_gravity(delta)
 	# M18b-2：硬直期间锁 AI（不索敌不攻击），只吃击退位移；
 	# 击退速度每帧衰减叠加，播完自然恢复原状态机。
@@ -331,9 +420,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _apply_gravity(delta: float) -> void:
-	if is_on_floor():
+	if _mgrounded:
 		return
-	velocity.y -= GRAVITY * delta
+	velocity -= _mup * GRAVITY * delta
 
 
 func _process_respawn(delta: float) -> void:
@@ -342,6 +431,7 @@ func _process_respawn(delta: float) -> void:
 		return
 	_respawn_countdown = -1.0
 	global_position = home_position
+	_snap_to_ground()  # M25d 条款 C3：重生归位也重新贴地
 	velocity = Vector3.ZERO
 	attribute_set.full_restore()
 	sync_monster_hp.rpc(attribute_set.hp, attribute_set.max_hp, true)
@@ -448,6 +538,11 @@ func _deal_attack(target_node: Node3D) -> void:
 	var attrs := CombatMath.get_attribute_set(target_node)
 	if attrs == null or not attrs.is_alive():
 		return
+	# M24：好感度系统——真玩家被怪攻击时触发 bot 助战/倒戈判定
+	#（bot 也是 Character，bot peer 不打草惊蛇。M28：判定改 PeerQuery，
+	# 旧 <9001 把 ENet 大随机 id 的真人客户端漏判成 bot）
+	if target_node is Character and not PeerQuery.is_bot_peer((target_node as Character).get_multiplayer_authority()):
+		RelationshipManager.on_player_attacked_by_monster(self, target_node)
 	_broadcast_anim(&"Attack1")
 	var is_crit := CombatMath.roll_crit()
 	var damage := CombatMath.calculate_damage(data.atk, 1.0, attrs.def)
@@ -531,6 +626,11 @@ func _is_player_alive(player_node: Node) -> bool:
 func _move_toward(target_position: Vector3, speed: float) -> void:
 	var direction := target_position - global_position
 	direction.y = 0
+	# M33：NaN 闸——目标或自身位置非有限（坠出世界等）时停步，防 normalized() 刷屏
+	if not (is_finite(direction.x) and is_finite(direction.z)):
+		velocity.x = 0
+		velocity.z = 0
+		return
 	if direction.length() < 0.15:
 		velocity.x = 0
 		velocity.z = 0
@@ -544,10 +644,17 @@ func _move_toward(target_position: Vector3, speed: float) -> void:
 func _face_toward(target_position: Vector3) -> void:
 	var direction := target_position - global_position
 	direction.y = 0
+	# M37：NaN 闸必须在 length() 比较**之前**——NaN 与任何数比较恒 false，
+	# 原来的 `length() < 0.01` 闸对 NaN 完全无效，NaN 方向会经 atan2
+	# 写进 body_model.rotation.y，模型旋转变 NaN 后引发下游 normalize 全线刷屏。
+	if not (is_finite(direction.x) and is_finite(direction.z)):
+		return
 	if direction.length() < 0.01:
 		return
 	# 模型正面为 +Z：正号公式（负号公式 atan2(-dx,-dz) 是模板遗留 bug，会背对目标）
 	var target_yaw := atan2(direction.x, direction.z)
+	if not is_finite(target_yaw):
+		return
 	body_model.rotation.y = lerp_angle(body_model.rotation.y, target_yaw, TURN_LERP)
 
 
@@ -613,8 +720,29 @@ func _update_alive_visual(alive: bool) -> void:
 			_health_bar.fade_out()
 	if not alive:
 		selection_ring.visible = false
+		# M25e：托管死亡压扁 tween——sync_monster_hp 每次同步都会调本函数，
+		# 重复调用会并发多个压扁/弹回 tween 互相叠加，scale 残留下不来。
+		# 注意：get_meta 对缺失 key 一律报引擎 ERROR（含 null default 的双参版），
+		# 必须 has_meta 前置。
+		var old_dead: Tween = null
+		if has_meta("_death_tween"):
+			old_dead = get_meta("_death_tween") as Tween
+		if old_dead != null and old_dead.is_valid():
+			old_dead.kill()
 		var tween := create_tween()
+		set_meta("_death_tween", tween)
+		# M25f：动画窗口戳——死亡压扁 0.3s / 复活 ELASTIC 0.35s（会过冲到 ~1.08）。
+		# 看门狗按窗口豁免（不依赖 state 时序：sync_monster_hp 里压扁先于
+		# _on_died 置 DEAD，且 ELASTIC 回弹在 IDLE 态），否则归位会拍碎表演。
+		set_meta("_death_anim_until_msec", Time.get_ticks_msec() + 500)
 		tween.tween_property(self, "scale", Vector3(1.0, 0.1, 1.0), 0.3)
 	else:
+		var old_alive: Tween = null
+		if has_meta("_death_tween"):
+			old_alive = get_meta("_death_tween") as Tween
+		if old_alive != null and old_alive.is_valid():
+			old_alive.kill()
 		var tween := create_tween()
+		set_meta("_death_tween", tween)
+		set_meta("_death_anim_until_msec", Time.get_ticks_msec() + 500)
 		tween.tween_property(self, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_ELASTIC)

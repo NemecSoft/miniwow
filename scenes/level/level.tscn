@@ -1,16 +1,19 @@
 [gd_scene format=3 uid="uid://dugaivbj1o66n"]
 
 [ext_resource type="Script" uid="uid://d0dgljwwl463n" path="res://scripts/level/level.gd" id="1_e1sh7"]
+[ext_resource type="Script" path="res://scripts/level/city_zone.gd" id="60_city"]
 [ext_resource type="PackedScene" uid="uid://cffjduipbb3s5" path="res://scenes/level/player.tscn" id="1_uvcbi"]
 [ext_resource type="PackedScene" path="res://scenes/level/arena.tscn" id="2_arena"]
 [ext_resource type="PackedScene" uid="uid://bclq8vh1x2goy" path="res://scenes/ui/inventory_ui.tscn" id="4_x8g2h"]
 [ext_resource type="PackedScene" uid="uid://ccencq0lcd3ph" path="res://scenes/ui/multiplayer_chat_ui.tscn" id="5_x9g3h"]
 [ext_resource type="PackedScene" uid="uid://bx7mq8t8hjn7q" path="res://scenes/ui/main_menu_ui.tscn" id="6_x9g3h"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu_ui.tscn" id="8_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/world_map_ui.tscn" id="8_map"]
 [ext_resource type="PackedScene" path="res://scenes/ui/player_list_ui.tscn" id="9_player_list"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="10_hud"]
 [ext_resource type="PackedScene" path="res://scenes/monsters/training_dummy.tscn" id="11_dummy"]
 [ext_resource type="PackedScene" path="res://scenes/environment/forest.tscn" id="12_forest"]
+[ext_resource type="PackedScene" path="res://scenes/environment/weather_system.tscn" id="61_weather"]
 [ext_resource type="PackedScene" path="res://scenes/environment/tree.tscn" id="20_tree"]
 [ext_resource type="PackedScene" path="res://scenes/monsters/monster.tscn" id="13_monster"]
 [ext_resource type="PackedScene" path="res://scenes/environment/kaykit_arena.tscn" id="48_kaykit_arena"]
@@ -24,9 +27,50 @@
 [ext_resource type="PackedScene" path="res://scenes/npcs/class_trainer.tscn" id="19_class_trainer"]
 [ext_resource type="Script" path="res://addons/sky_3d/src/Sky3D.gd" id="20_sky3d"]
 [ext_resource type="Script" path="res://scripts/environment/terrain_starter.gd" id="52_terrain"]
-[ext_resource type="PackedScene" path="res://scenes/vehicles/hover_couch.tscn" id="53_couch"]
+[ext_resource type="Script" path="res://scripts/environment/forest_starter.gd" id="61_forest"]
 [ext_resource type="Script" path="res://scripts/level/world_drops.gd" id="21_drops"]
 [ext_resource type="PackedScene" path="res://scenes/npcs/villager.tscn" id="22_villager"]
+[ext_resource type="PackedScene" path="res://scenes/minigame/balloon_arena.tscn" id="62_balloon_arena"]
+[ext_resource type="Script" path="res://scripts/home/home.gd" id="63_home"]
+[ext_resource type="Script" path="res://scripts/home/home_portal.gd" id="64_portal"]
+
+[sub_resource type="SceneReplicationConfig" id="BotSyncConfig"]
+properties/0/path = NodePath("9001:position")
+properties/0/spawn = true
+properties/1/path = NodePath("9001/GodotRobot3D:rotation")
+properties/1/spawn = true
+properties/2/path = NodePath("9002:position")
+properties/2/spawn = true
+properties/3/path = NodePath("9002/GodotRobot3D:rotation")
+properties/3/spawn = true
+properties/4/path = NodePath("9003:position")
+properties/4/spawn = true
+properties/5/path = NodePath("9003/GodotRobot3D:rotation")
+properties/5/spawn = true
+properties/6/path = NodePath("9004:position")
+properties/6/spawn = true
+properties/7/path = NodePath("9004/GodotRobot3D:rotation")
+properties/7/spawn = true
+properties/8/path = NodePath("9001/PlayerNick/Nickname:text")
+properties/8/spawn = true
+properties/9/path = NodePath("9002/PlayerNick/Nickname:text")
+properties/9/spawn = true
+properties/10/path = NodePath("9003/PlayerNick/Nickname:text")
+properties/10/spawn = true
+properties/11/path = NodePath("9004/PlayerNick/Nickname:text")
+properties/11/spawn = true
+properties/12/path = NodePath("9001:player_class")
+properties/12/spawn = true
+properties/12/replication_mode = 1
+properties/13/path = NodePath("9002:player_class")
+properties/13/spawn = true
+properties/13/replication_mode = 1
+properties/14/path = NodePath("9003:player_class")
+properties/14/spawn = true
+properties/14/replication_mode = 1
+properties/15/path = NodePath("9004:player_class")
+properties/15/spawn = true
+properties/15/replication_mode = 1
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.18, 0.46, 0.92, 1)
@@ -77,11 +121,25 @@ unique_name_in_owner = true
 _spawnable_scenes = PackedStringArray("res://scenes/items/hats/fedora.tscn", "res://scenes/items/hats/headphones.tscn", "res://scenes/items/hats/pirate_hat.tscn", "res://scenes/items/hats/sheriff_hat.tscn", "res://scenes/items/hats/sombrero.tscn", "res://scenes/items/hats/wizard_hat.tscn", "res://scenes/items/backpacks/backpack.tscn", "res://scenes/items/weapons/sword.tscn", "res://scenes/items/weapons/sword_big.tscn", "res://scenes/items/weapons/axe.tscn", "res://scenes/items/misc/chicken_leg.tscn", "res://scenes/items/misc/bone.tscn", "res://scenes/items/misc/chalice.tscn")
 spawn_path = NodePath("../Environment/ItemContainer")
 
+[node name="BotMultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://scenes/level/player.tscn")
+spawn_path = NodePath("../PlayersContainer")
+
+[node name="VehicleMultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://scenes/vehicles/hover_couch.tscn", "res://scenes/vehicles/sports_car.tscn")
+spawn_path = NodePath("../Environment/Vehicles")
+
+[node name="BotMultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("../PlayersContainer")
+replication_config = SubResource("BotSyncConfig")
+
 [node name="Environment" type="Node3D" parent="." unique_id=523076069]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2542782, 0)
+
+[node name="WeatherSystem" parent="Environment" instance=ExtResource("61_weather")]
 
 [node name="Arena" parent="Environment" unique_id=318485284 instance=ExtResource("2_arena")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -200)
 
 [node name="Sky3D" type="WorldEnvironment" parent="Environment"]
 script = ExtResource("20_sky3d")
@@ -91,183 +149,201 @@ game_time_enabled = false
 [node name="TerrainStarter" type="Node3D" parent="Environment"]
 script = ExtResource("52_terrain")
 
+[node name="ForestStarter" type="Node3D" parent="Environment"]
+script = ExtResource("61_forest")
+
+[node name="BalloonArena" parent="Environment" instance=ExtResource("62_balloon_arena")]
+
+[node name="HomeStarter" type="Node3D" parent="Environment"]
+script = ExtResource("63_home")
+
+[node name="PortalVillage" type="Node3D" parent="Environment"]
+script = ExtResource("64_portal")
+world_position = Vector3(26, 0, -118)
+world_rotation_y = 0.0
+destination = NodePath("../HomePortal")
+portal_label = "家园"
+
+[node name="HomePortal" type="Node3D" parent="Environment"]
+script = ExtResource("64_portal")
+world_position = Vector3(178, 0, -297)
+world_rotation_y = 3.14159
+destination = NodePath("../PortalVillage")
+portal_label = "村庄广场"
+
 [node name="StartupCamera" type="Camera3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 0.9, 0.44, 0, -0.44, 0.9, 0, 68, 340)
+transform = Transform3D(1, 0, 0, 0, 0.966, 0.259, 0, -0.259, 0.966, 0, 12, -95)
 current = true
 
 [node name="Vehicles" type="Node3D" parent="Environment"]
 
-[node name="HoverCouch" parent="Environment" instance=ExtResource("53_couch")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 61.5, 314)
+[node name="CityZone" type="Node3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1100, 210, -1700)
+script = ExtResource("60_city")
 
 [node name="ItemContainer" type="Node3D" parent="Environment" unique_id=1445003613]
 script = ExtResource("21_drops")
 
 [node name="TrainingArea" type="Node3D" parent="Environment" unique_id=1900000001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -200)
 
 [node name="Dummy1" parent="Environment/TrainingArea" unique_id=1900000002 instance=ExtResource("11_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -12)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 2.25, 74)
 display_name = "训练木桩"
 level = 1
 max_hp = 1000
 
 [node name="Dummy2" parent="Environment/TrainingArea" unique_id=1900000003 instance=ExtResource("11_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0, -14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 2.25, 76)
 display_name = "老旧木桩"
 level = 2
 max_hp = 1400
 
 [node name="Dummy3" parent="Environment/TrainingArea" unique_id=1900000004 instance=ExtResource("11_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0, -14)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 2.25, 76)
 display_name = "坚固木桩"
 level = 3
 max_hp = 2000
 
 [node name="Effects" type="Node3D" parent="Environment" unique_id=1900000005]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -200)
 
 [node name="SignPost" type="MeshInstance3D" parent="Environment" unique_id=1900000006]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 1, -30)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.25, -120)
+material_override = SubResource("StandardMaterial3D_sign")
 mesh = SubResource("BoxMesh_sign")
 
-[node name="RespawnSign" type="Label3D" parent="Environment" unique_id=1900000007]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2.4, -30)
-billboard = 1
-no_depth_test = true
-outline_size = 16
-outline_modulate = Color(0, 0, 0, 1)
-pixel_size = 0.07
-text = "新月村 · 复活点"
-
 [node name="Merchant" parent="Environment" unique_id=1900000024 instance=ExtResource("15_merchant")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2.25, -134)
 
 [node name="QuestGiver" parent="Environment" unique_id=1900000026 instance=ExtResource("17_quest_giver")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -22)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2.25, -134)
 
 [node name="ClassTrainer" parent="Environment" unique_id=1900000028 instance=ExtResource("19_class_trainer")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -30)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 2.25, -132)
 
 [node name="Villager" parent="Environment" unique_id=1900000030 instance=ExtResource("22_villager")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 0, -27)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 2.25, -124)
 
 
 [node name="KaykitArena" parent="Environment" instance=ExtResource("48_kaykit_arena")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, -130)
 
 [node name="KaykitArena2" parent="Environment" instance=ExtResource("49_kaykit_arena2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0.25, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0.25, -130)
 
 [node name="KaykitArena3" parent="Environment" instance=ExtResource("50_kaykit_arena3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0.25, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0.25, -130)
 
 [node name="Monsters" type="Node3D" parent="Environment" unique_id=1900000011]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1650)
 
 [node name="Raider4" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 0, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 2.25, 98)
 monster_id = "kaykit_raider"
 
 [node name="Raider5" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 0, 76)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 2.25, 100)
 monster_id = "kaykit_raider"
 
 [node name="Raider6" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 0, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 2.25, 92)
 monster_id = "kaykit_raider"
 
 [node name="Raider7" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66, 0, 76)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 2.25, 96)
 monster_id = "kaykit_raider"
 
 [node name="Raider8" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 0, 65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 2.25, 88)
 monster_id = "kaykit_raider"
 
 [node name="Raider1" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 62)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 2.25, 90)
 monster_id = "kaykit_raider"
 
 [node name="Raider2" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 74)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2.25, 94)
 monster_id = "kaykit_raider"
 
 [node name="Raider3" parent="Environment/Monsters" instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 74)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 2.25, 98)
 monster_id = "kaykit_raider"
 
 [node name="Wolf1" parent="Environment/Monsters" unique_id=1900000012 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2.25, 88)
 monster_id = "wolf"
 
 [node name="Wolf2" parent="Environment/Monsters" unique_id=1900000013 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62, 0, 68)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2.25, 92)
 monster_id = "wolf"
 
 [node name="Wolf3" parent="Environment/Monsters" unique_id=1900000014 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 0, 50)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 2.25, 90)
 monster_id = "wolf"
 
 [node name="Wolf4" parent="Environment/Monsters" unique_id=1900000101 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 72)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2.25, 94)
 monster_id = "wolf"
 
 [node name="Wolf5" parent="Environment/Monsters" unique_id=1900000102 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 0, 78)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 2.25, 96)
 monster_id = "wolf"
 
 [node name="Boar1" parent="Environment/Monsters" unique_id=1900000015 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 0, 55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 2.25, 90)
 monster_id = "boar"
 
 [node name="Boar2" parent="Environment/Monsters" unique_id=1900000016 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 0, 65)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 2.25, 94)
 monster_id = "boar"
 
 [node name="Boar3" parent="Environment/Monsters" unique_id=1900000103 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 0, 48)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 2.25, 98)
 monster_id = "boar"
 
 [node name="Boar4" parent="Environment/Monsters" unique_id=1900000104 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58, 0, 75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 2.25, 96)
 monster_id = "boar"
 
 [node name="SpiderElite1" parent="Environment/Monsters" unique_id=1900000019 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 2.25, 100)
 monster_id = "spider_elite"
 
 [node name="SpiderElite2" parent="Environment/Monsters" unique_id=1900000105 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 86, 0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 2.25, 98)
 monster_id = "spider_elite"
 
 [node name="Lich1" parent="Environment/Monsters" unique_id=1900000020 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55, 0, -55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 2.25, 96)
 monster_id = "lich"
 
 [node name="Lich2" parent="Environment/Monsters" unique_id=1900000021 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 0, -70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 2.25, 100)
 monster_id = "lich"
 
 [node name="Lich3" parent="Environment/Monsters" unique_id=1900000106 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, 0, -52)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 2.25, 92)
 monster_id = "lich"
 
 [node name="Worgen1" parent="Environment/Monsters" unique_id=1900000017 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, -72)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2.25, 100)
 monster_id = "worgen"
 
 [node name="Worgen2" parent="Environment/Monsters" unique_id=1900000018 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 0, -48)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.25, 98)
 monster_id = "worgen"
 
 [node name="Golem1" parent="Environment/Monsters" unique_id=1900000022 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 0, -55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 2.25, 92)
 monster_id = "golem"
 
 [node name="Golem2" parent="Environment/Monsters" unique_id=1900000023 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75, 0, -70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58, 2.25, 96)
 monster_id = "golem"
 
 [node name="Golem3" parent="Environment/Monsters" unique_id=1900000107 instance=ExtResource("13_monster")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62, 0, -82)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 2.25, 88)
 monster_id = "golem"
 
 [node name="Trees" type="Node3D" parent="Environment" unique_id=1900000110]
@@ -336,4 +412,7 @@ visible = false
 visible = false
 
 [node name="PauseMenuUI" parent="." unique_id=358154633 instance=ExtResource("8_pause")]
+visible = false
+
+[node name="WorldMapUI" parent="." instance=ExtResource("8_map")]
 visible = false

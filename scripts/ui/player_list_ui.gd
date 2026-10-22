@@ -1,9 +1,9 @@
 class_name PlayerListUI
 extends Control
 
-const PLAYER_ROW_HEIGHT := 28.0
-const MAX_VISIBLE_ROWS := 8
-const RESERVED_VERTICAL_SPACE := 190.0
+const PLAYER_ROW_HEIGHT := 22.0
+const MAX_VISIBLE_ROWS := 6
+const RESERVED_VERTICAL_SPACE := 120.0
 const SAFE_AREA_MARGIN := 16.0
 
 var _player_count := 0
@@ -75,7 +75,7 @@ func _update_layout() -> void:
 	if not panel or not player_scroll:
 		return
 	var panel_minimum_size := panel.custom_minimum_size
-	panel_minimum_size.x = maxf(0.0, minf(420.0, size.x - 32.0))
+	panel_minimum_size.x = maxf(0.0, minf(320.0, size.x - 32.0))
 	panel.custom_minimum_size = panel_minimum_size
 
 	var visible_rows := maxi(1, mini(_player_count, MAX_VISIBLE_ROWS))

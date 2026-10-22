@@ -1,37 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu_ui.gd" id="2_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.055, 0.06, 0.07, 0.82)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(0.22, 0.25, 0.29, 0.92)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-bg_color = Color(0.14, 0.16, 0.19, 0.96)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_button_focus"]
 
 [node name="PauseMenuUI" type="Control"]
 auto_translate_mode = 1
@@ -56,20 +25,19 @@ grow_vertical = 2
 color = Color(0, 0, 0, 0.58)
 
 [node name="Panel" type="PanelContainer" parent="Overlay"]
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(400, 0)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -178.0
-offset_right = 180.0
-offset_bottom = 178.0
+offset_left = -200.0
+offset_top = -260.0
+offset_right = 200.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="Overlay/Panel"]
 layout_mode = 2
@@ -80,7 +48,7 @@ theme_override_constants/margin_bottom = 32
 
 [node name="Buttons" type="VBoxContainer" parent="Overlay/Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 16
 alignment = 1
 
 [node name="Title" type="Label" parent="Overlay/Panel/MarginContainer/Buttons"]
@@ -92,24 +60,14 @@ horizontal_alignment = 1
 [node name="Resume" type="Button" parent="Overlay/Panel/MarginContainer/Buttons"]
 layout_mode = 2
 mouse_default_cursor_shape = 2
-theme_override_colors/font_hover_color = Color(0.55, 0.75, 0.95, 1)
-theme_override_colors/font_pressed_color = Color(0.42, 0.62, 0.82, 1)
 theme_override_font_sizes/font_size = 32
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_button_focus")
 text = "继续游戏"
 flat = true
 
 [node name="MainMenu" type="Button" parent="Overlay/Panel/MarginContainer/Buttons"]
 layout_mode = 2
 mouse_default_cursor_shape = 2
-theme_override_colors/font_hover_color = Color(0.55, 0.75, 0.95, 1)
-theme_override_colors/font_pressed_color = Color(0.42, 0.62, 0.82, 1)
 theme_override_font_sizes/font_size = 32
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_button_focus")
 text = "返回主菜单"
 flat = true
 
@@ -117,26 +75,171 @@ flat = true
 auto_translate_mode = 2
 layout_mode = 2
 mouse_default_cursor_shape = 2
-theme_override_colors/font_hover_color = Color(0.55, 0.75, 0.95, 1)
-theme_override_colors/font_pressed_color = Color(0.42, 0.62, 0.82, 1)
 theme_override_font_sizes/font_size = 32
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_button_focus")
 text = "语言：中文"
 flat = true
+
+[node name="ThemeButton" type="Button" parent="Overlay/Panel/MarginContainer/Buttons"]
+auto_translate_mode = 2
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 32
+text = "界面主题：魔兽世界"
+flat = true
+
+[node name="AudioPanel" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AudioTitle" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "声音设置"
+horizontal_alignment = 1
+
+[node name="MasterRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MasterLabel" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MasterRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "总音量"
+vertical_alignment = 1
+
+[node name="MasterSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MasterRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="MasterValue" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MasterRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SfxRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SfxLabel" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/SfxRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "音效"
+vertical_alignment = 1
+
+[node name="SfxSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/SfxRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxValue" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/SfxRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="AmbientRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AmbientLabel" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/AmbientRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "环境音"
+vertical_alignment = 1
+
+[node name="AmbientSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/AmbientRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="AmbientValue" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/AmbientRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MusicRow" type="HBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MusicLabel" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MusicRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "音乐"
+vertical_alignment = 1
+
+[node name="MusicSlider" type="HSlider" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MusicRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 55.0
+
+[node name="MusicValue" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel/MusicRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "55%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MuteButton" type="CheckButton" parent="Overlay/Panel/MarginContainer/Buttons/AudioPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "静音"
+horizontal_alignment = 1
+
+[node name="GameplayPanel" type="VBoxContainer" parent="Overlay/Panel/MarginContainer/Buttons"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GameplayTitle" type="Label" parent="Overlay/Panel/MarginContainer/Buttons/GameplayPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "游戏设置"
+horizontal_alignment = 1
+
+[node name="HoverHaloButton" type="CheckButton" parent="Overlay/Panel/MarginContainer/Buttons/GameplayPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "坐骑光环"
+horizontal_alignment = 1
 
 [node name="Quit" type="Button" parent="Overlay/Panel/MarginContainer/Buttons"]
 layout_mode = 2
 mouse_default_cursor_shape = 2
-theme_override_colors/font_hover_color = Color(0.86, 0.1, 0.1, 1)
-theme_override_colors/font_pressed_color = Color(0.86, 0.1, 0.1, 1)
 theme_override_font_sizes/font_size = 32
-theme_override_styles/focus = SubResource("StyleBoxEmpty_button_focus")
 text = "退出游戏"
 flat = true
 
 [connection signal="pressed" from="Overlay/Panel/MarginContainer/Buttons/Resume" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Overlay/Panel/MarginContainer/Buttons/MainMenu" to="." method="_on_main_menu_pressed"]
 [connection signal="pressed" from="Overlay/Panel/MarginContainer/Buttons/Language" to="." method="_on_language_pressed"]
+[connection signal="pressed" from="Overlay/Panel/MarginContainer/Buttons/ThemeButton" to="." method="_on_theme_pressed"]
 [connection signal="pressed" from="Overlay/Panel/MarginContainer/Buttons/Quit" to="." method="_on_quit_pressed"]

@@ -1,4 +1,5 @@
 [gd_scene format=3 uid="uid://cffjduipbb3s5"]
+[ext_resource type="PackedScene" path="res://assets/models/SM_Sword_1_Shortsword.fbx" id="99_swordshort"]
 
 [ext_resource type="Script" uid="uid://c2si8gkbnde0c" path="res://scripts/player/player.gd" id="1_tdh26"]
 [ext_resource type="Script" uid="uid://v8j54rbc0ik" path="res://scripts/player/3d_godot_robot.gd" id="2_mexc5"]
@@ -4543,10 +4544,18 @@ properties/13/replication_mode = 2
 properties/14/path = NodePath("GodotRobot3D/RobotArmature/Skeleton3D/LeftHandAttach/ChickenLeg:visible")
 properties/14/spawn = true
 properties/14/replication_mode = 2
+properties/15/path = NodePath(".:rotation")
+properties/15/spawn = true
+properties/15/replication_mode = 1
+properties/16/path = NodePath("GodotRobot3D/RobotArmature/Skeleton3D/LeftHandAttach/SwordShort:visible")
+properties/16/spawn = true
+properties/16/replication_mode = 2
 
 [node name="Player" type="CharacterBody3D" unique_id=1972894128 node_paths=PackedStringArray("_body", "_spring_arm_offset")]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 collision_mask = 7
+floor_max_angle = 1.0472
+floor_snap_length = 0.4
 script = ExtResource("1_tdh26")
 _body = NodePath("GodotRobot3D")
 _spring_arm_offset = NodePath("SpringArmOffset")
@@ -4797,6 +4806,7 @@ transform = Transform3D(0.55, -7.450581e-09, -2.8405339e-08, 2.6251655e-08, -1.8
 visible = false
 
 [node name="Axe" parent="GodotRobot3D/RobotArmature/Skeleton3D/LeftHandAttach" unique_id=352347370 instance=ExtResource("28_axe")]
+[node name="SwordShort" parent="GodotRobot3D/RobotArmature/Skeleton3D/LeftHandAttach" unique_id=991234567 instance=ExtResource("99_swordshort")]
 transform = Transform3D(0.75, -1.1175871e-08, 1.0128133e-08, -1.3154931e-08, 0, -0.7499999, -7.450581e-09, 0.7499998, 1.8626451e-09, 0.013932824, 0.23088384, 0.3978039)
 visible = false
 

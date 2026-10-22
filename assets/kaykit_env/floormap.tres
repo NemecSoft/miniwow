@@ -1,11 +1,15 @@
 [gd_resource type="MeshLibrary" format=4 uid="uid://cbw5qq7imfwn5"]
 
 [ext_resource type="Texture2D" uid="uid://bh6it2b4vpqwy" path="res://assets/kaykit_env/texture.png" id="2_gl0lp"]
+[ext_resource type="Texture2D" path="res://assets/kaykit_env/floor_tiles.png" id="3_floortiles"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o4oa8"]
 resource_name = "Environment_Material"
-albedo_texture = ExtResource("2_gl0lp")
-roughness = 0.4
+albedo_texture = ExtResource("3_floortiles")
+roughness = 0.85
+uv1_triplanar = true
+uv1_world_triplanar = true
+uv1_scale = Vector3(1.0, 1.0, 1.0)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_cu8q0"]
 _surfaces = [{
@@ -56,8 +60,11 @@ data = PackedVector3Array(-1.95, 1.4901161e-07, -1.95, 1.95, 1.4901161e-07, 1.95
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d8aos"]
 resource_name = "Environment_Material"
-albedo_texture = ExtResource("2_gl0lp")
-roughness = 0.4
+albedo_texture = ExtResource("3_floortiles")
+roughness = 0.85
+uv1_triplanar = true
+uv1_world_triplanar = true
+uv1_scale = Vector3(1.0, 1.0, 1.0)
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_kv32b"]
 _surfaces = [{

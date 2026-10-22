@@ -43,4 +43,5 @@ modulate = Color(0.8, 0.65, 1.0, 1)
 
 [node name="SelectionRing" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, -4.371139e-08, 0, -1, 0, 1, -4.371139e-08, 0, 0.07, 0)
+material_override = SubResource("StandardMaterial3D_ring")
 mesh = SubResource("TorusMesh_ring")

@@ -1,0 +1,14 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PROPS: Attenuation Filter, Doppler, Emission Angle, area_mask, attenuation_filter_cutoff_hz, attenuation_filter_db, attenuation_model, autoplay, bus, doppler_tracking, emission_angle_degrees, emission_angle_enabled, emission_angle_filter_attenuation_db, max_db, max_distance, max_polyphony, panning_strength, pitch_scale, playback_type, playing, stream, stream_paused, unit_size, volume_db, volume_linear
+HAS attenuation_filter_cutoff_hz = true
+HAS attenuation_filter_db = true
+HAS attenuation_filter_enabled = false
+HAS attenuation_model = true
+HAS doppler_tracking = true
+HAS max_distance = true
+HAS unit_size = true
+HAS panning_strength = true
+DOPPLER_CONST = 2
+MonsterDatabase: 已加载 7 种怪物
+QuestDatabase: 已注册 8 个任务

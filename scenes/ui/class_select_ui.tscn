@@ -1,15 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/class_select_ui.gd" id="1_select"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.08, 0.08, 0.12, 0.95)
-border_width_top = 2
-border_color = Color(0.35, 0.3, 0.2, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [node name="ClassSelectUI" type="CanvasLayer"]
 auto_translate_mode = 1
@@ -24,9 +15,7 @@ color = Color(0, 0, 0, 0.55)
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Panel" type="Panel" parent="CenterContainer"]
-custom_minimum_size = Vector2(680, 430)
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+[node name="Panel" type="PanelContainer" parent="CenterContainer"]
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/Panel"]
 theme_override_constants/margin_left = 20
@@ -42,8 +31,7 @@ theme_override_constants/separation = 12
 [node name="TitleLabel" type="Label" parent="CenterContainer/Panel/MarginContainer/VBoxContainer/TitleBar"]
 size_flags_horizontal = 3
 text = "选择你的职业"
-theme_override_font_sizes/font_size = 24
-theme_override_colors/font_color = Color(1.0, 0.85, 0.4, 1.0)
+theme_type_variation = &"TitleLabel"
 
 [node name="CloseButton" type="Button" parent="CenterContainer/Panel/MarginContainer/VBoxContainer/TitleBar"]
 text = "再想想"
@@ -51,9 +39,9 @@ text = "再想想"
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
 theme_override_constants/separation = 4
 
-[node name="CardContainer" type="HBoxContainer" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
-theme_override_constants/separation = 14
-alignment = 1
+[node name="CardContainer" type="GridContainer" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
 
 [node name="InteractPrompt" type="Label" parent="."]
 anchor_left = 0.5

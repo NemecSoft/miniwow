@@ -3,18 +3,6 @@
 [ext_resource type="Script" uid="uid://c2w12kgcvtww4" path="res://scripts/ui/inventory_ui.gd" id="1_h7x4v"]
 [ext_resource type="Texture2D" path="res://assets/ui/close.svg" id="2_close"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.055, 0.06, 0.07, 0.82)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.55, 0.58, 0.62, 0.45)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_separator"]
 color = Color(0.65, 0.68, 0.72, 0.42)
 
@@ -51,7 +39,6 @@ theme_override_constants/separation = 10
 [node name="EquipmentPanel" type="PanelContainer" parent="SafeArea/CenterContainer/InventoryPanels"]
 custom_minimum_size = Vector2(132, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="SafeArea/CenterContainer/InventoryPanels/EquipmentPanel"]
 layout_mode = 2
@@ -112,7 +99,6 @@ size_flags_vertical = 3
 [node name="InventoryPanel" type="PanelContainer" parent="SafeArea/CenterContainer/InventoryPanels" unique_id=486763135]
 custom_minimum_size = Vector2(296, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="SafeArea/CenterContainer/InventoryPanels/InventoryPanel" unique_id=1913204593]
 layout_mode = 2
@@ -182,7 +168,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="ItemTooltip/Panel" unique_id=413423816]
 layout_mode = 1

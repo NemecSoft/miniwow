@@ -120,7 +120,14 @@ func _ready() -> void:
 
 	# ===== 测 2：松手 1s，位移应 < 2m（无自动飞）=====
 	var pos1 := _couch.global_position
-	await _sleep(1.0)
+	printerr("[T] 漂移诊断: peer=%s axis_fwd=%.3f seats=%s" % [
+		multiplayer.has_multiplayer_peer(),
+		Input.get_axis("move_backward", "move_forward"),
+		_couch.seats])
+	for i in range(4):
+		await _sleep(0.25)
+		printerr("[T]   采样%d pos=%s axis=%.3f" % [i, _couch.global_position,
+			Input.get_axis("move_backward", "move_forward")])
 	var d2: float = (_couch.global_position - pos1).length()
 	_check(d2 < 2.0, "松手 1s 漂移 %.2fm (期望<2)" % d2)
 

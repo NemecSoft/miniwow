@@ -24,7 +24,6 @@ func verifications() -> void:
 	
 func physics_update(delta : float) -> void:
 
-	_try_mount()
 	applies()
 	
 	play_char.gravity_apply(delta)
@@ -66,12 +65,3 @@ func move(delta : float) -> void:
 		#apply smooth stop 
 		play_char.velocity.x = lerp(play_char.velocity.x, 0.0, play_char.move_deccel * delta)
 		play_char.velocity.z = lerp(play_char.velocity.z, 0.0, play_char.move_deccel * delta)
-
-func _try_mount() -> void:
-	# M19：靠近悬浮沙发按 E → 进入骑乘状态
-	if not Input.is_action_just_pressed("interact"):
-		return
-	for v in play_char.get_tree().get_nodes_in_group("vehicles"):
-		if play_char.global_position.distance_to(v.global_position) <= 3.5:
-			transitioned.emit(self, "MountState")
-			return

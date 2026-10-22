@@ -27,7 +27,11 @@ func spawn_drop(item_id: String, quantity: int, world_position: Vector3) -> void
 	if drop is ItemRigidBody3D:
 		(drop as ItemRigidBody3D).item_id = item_id
 		(drop as ItemRigidBody3D).quantity = maxi(1, quantity)
-	add_child(drop)
+	# M21：必须传 force_readable_name=true——ItemMultiplayerSpawner 自动同步
+	# 要求节点有合法名字，直接 add_child(drop) 会生成 "@RigidBody3D@261" 这类
+	# 保留名，spawner 拒绝同步（窗口实测：bot 打死怪后战利品全军覆没，
+	# 报 "Unable to auto-spawn node with reserved name"）。
+	add_child(drop, true)
 	# 容器（Environment）带 y≈2.25 变换，必须用 global_position 定位（M5 弹道同款坑）
 	var drop_node := drop as Node3D
 	drop_node.global_position = world_position + Vector3(0, 0.6, 0)

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/m40_shot.gd" id="1_m40s"]
+
+[node name="M40Shot" type="Node3D"]
+script = ExtResource("1_m40s")

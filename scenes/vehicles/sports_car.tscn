@@ -1,0 +1,146 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/sports_car.gd" id="1_sc"]
+[ext_resource type="AudioStream" path="res://assets/audio/vehicle/electric-drive.wav" id="2_engine"]
+[ext_resource type="AudioStream" path="res://assets/audio/vehicle/jet-loop.wav" id="3_jet"]
+[ext_resource type="PackedScene" path="res://assets/models/roadster2.glb" id="4_model"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_car"]
+properties/0/path = NodePath(".:bot_only")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:position")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:rotation")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:boosting_sync")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:lifting_sync")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_boost"]
+transparency = 1
+albedo_color = Color(1, 0.62, 0.15, 0.85)
+emission_enabled = true
+emission = Color(1, 0.55, 0.1, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="CylinderMesh" id="ConeMesh_boost"]
+top_radius = 0.0
+bottom_radius = 0.15
+height = 1.1
+radial_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lift"]
+transparency = 1
+albedo_color = Color(0.62, 0.85, 1, 0.8)
+emission_enabled = true
+emission = Color(0.55, 0.8, 1, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="CylinderMesh" id="ConeMesh_lift"]
+top_radius = 0.0
+bottom_radius = 0.14
+height = 0.9
+radial_segments = 12
+
+[sub_resource type="FontFile" path="res://assets/fonts/Kurland.ttf" id="8_font"]
+
+[node name="SportsCar" type="Node3D"]
+script = ExtResource("1_sc")
+
+[node name="CarModel" parent="." instance=ExtResource("4_model")]
+
+[node name="LiftFX_FL" type="MeshInstance3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, -0.66, -0.33, -1.03)
+visible = false
+mesh = SubResource("ConeMesh_lift")
+surface_material_override/0 = SubResource("StandardMaterial3D_lift")
+cast_shadow = 0
+
+[node name="LiftFX_FR" type="MeshInstance3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0.66, -0.33, -1.03)
+visible = false
+mesh = SubResource("ConeMesh_lift")
+surface_material_override/0 = SubResource("StandardMaterial3D_lift")
+cast_shadow = 0
+
+[node name="LiftFX_RL" type="MeshInstance3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, -0.66, -0.33, 1.0)
+visible = false
+mesh = SubResource("ConeMesh_lift")
+surface_material_override/0 = SubResource("StandardMaterial3D_lift")
+cast_shadow = 0
+
+[node name="LiftFX_RR" type="MeshInstance3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0.66, -0.33, 1.0)
+visible = false
+mesh = SubResource("ConeMesh_lift")
+surface_material_override/0 = SubResource("StandardMaterial3D_lift")
+cast_shadow = 0
+
+[node name="BoostFX_L" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.47, 0.36, 2.95)
+visible = false
+mesh = SubResource("ConeMesh_boost")
+surface_material_override/0 = SubResource("StandardMaterial3D_boost")
+cast_shadow = 0
+
+[node name="BoostFX_R" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.47, 0.36, 2.95)
+visible = false
+mesh = SubResource("ConeMesh_boost")
+surface_material_override/0 = SubResource("StandardMaterial3D_boost")
+cast_shadow = 0
+
+[node name="Prompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+billboard = 1
+no_depth_test = true
+outline_size = 6
+outline_modulate = Color(0, 0, 0, 1)
+pixel_size = 0.02
+text = "E - 上车"
+font = SubResource("8_font")
+font_size = 16
+
+[node name="SpeedLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -2.4)
+billboard = 1
+no_depth_test = true
+outline_size = 8
+outline_modulate = Color(0, 0, 0, 1)
+pixel_size = 0.015
+text = "0 km/h"
+font = SubResource("8_font")
+font_size = 22
+
+[node name="AttitudeLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, -2.4)
+billboard = 1
+no_depth_test = true
+outline_size = 6
+outline_modulate = Color(0, 0, 0, 1)
+pixel_size = 0.01
+text = "俯仰 0° · 翻滚 0°"
+font = SubResource("8_font")
+font_size = 15
+
+[node name="EngineSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("2_engine")
+bus = &"SFX"
+unit_size = 12.0
+max_db = 3.0
+
+[node name="JetSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3_jet")
+bus = &"SFX"
+unit_size = 14.0
+volume_db = 2.0
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_car")

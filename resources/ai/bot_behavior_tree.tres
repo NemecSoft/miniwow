@@ -1,0 +1,71 @@
+[gd_resource type="BehaviorTree" format=3]
+
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_check_bot_state.gd" id="1_d8tvc"]
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_bot_respawn.gd" id="2_sipb7"]
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_bot_move_to.gd" id="3_xwyjd"]
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_bot_quest_action.gd" id="4_p7mjc"]
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_bot_find_target.gd" id="5_quwww"]
+[ext_resource type="Script" path="res://scripts/ai/tasks/bt_bot_attack.gd" id="6_ov8rw"]
+
+[sub_resource type="BTCondition" id="BTCondition_eyljy"]
+script = ExtResource("1_d8tvc")
+mode = 0
+
+[sub_resource type="BTAction" id="BTAction_05dfj"]
+script = ExtResource("2_sipb7")
+
+[sub_resource type="BTSequence" id="BTSequence_goyx3"]
+children = [SubResource("BTCondition_eyljy"), SubResource("BTAction_05dfj")]
+
+[sub_resource type="BTCondition" id="BTCondition_ytb68"]
+script = ExtResource("1_d8tvc")
+mode = 1
+
+[sub_resource type="BTAction" id="BTAction_2j5vg"]
+script = ExtResource("3_xwyjd")
+target_var = &"quest_giver"
+
+[sub_resource type="BTAction" id="BTAction_n0iuu"]
+script = ExtResource("4_p7mjc")
+action = "turn_in"
+
+[sub_resource type="BTSequence" id="BTSequence_4hdsp"]
+children = [SubResource("BTCondition_ytb68"), SubResource("BTAction_2j5vg"), SubResource("BTAction_n0iuu")]
+
+[sub_resource type="BTCondition" id="BTCondition_vldxa"]
+script = ExtResource("1_d8tvc")
+mode = 2
+
+[sub_resource type="BTAction" id="BTAction_quje6"]
+script = ExtResource("3_xwyjd")
+target_var = &"quest_giver"
+
+[sub_resource type="BTAction" id="BTAction_l0ty6"]
+script = ExtResource("4_p7mjc")
+
+[sub_resource type="BTSequence" id="BTSequence_jb1ou"]
+children = [SubResource("BTCondition_vldxa"), SubResource("BTAction_quje6"), SubResource("BTAction_l0ty6")]
+
+[sub_resource type="BTCondition" id="BTCondition_xxcht"]
+script = ExtResource("1_d8tvc")
+
+[sub_resource type="BTAction" id="BTAction_va5dk"]
+script = ExtResource("5_quwww")
+
+[sub_resource type="BTAction" id="BTAction_gifhh"]
+script = ExtResource("3_xwyjd")
+
+[sub_resource type="BTAction" id="BTAction_vgkey"]
+script = ExtResource("6_ov8rw")
+
+[sub_resource type="BTSequence" id="BTSequence_jvxfg"]
+children = [SubResource("BTCondition_xxcht"), SubResource("BTAction_va5dk"), SubResource("BTAction_gifhh"), SubResource("BTAction_vgkey")]
+
+[sub_resource type="BTWait" id="BTWait_2xgig"]
+
+[sub_resource type="BTSelector" id="BTSelector_abwxe"]
+children = [SubResource("BTSequence_goyx3"), SubResource("BTSequence_4hdsp"), SubResource("BTSequence_jb1ou"), SubResource("BTSequence_jvxfg"), SubResource("BTWait_2xgig")]
+
+[resource]
+description = "M20-Bot 自动任务行为树：死亡→交付→接取→战斗→空闲"
+root_task = SubResource("BTSelector_abwxe")

@@ -1,0 +1,92 @@
+[gd_resource type="Terrain3DMaterial" load_steps=4 format=3 uid="uid://cm39forestmaterial01"]
+
+; M39：雾中森林专用 Terrain3D 材质（需求 3「场景加材质」· 地形部分）。
+; 从 assets/terrain_demo/data/M_terrain.tres 复制，只改视觉参数，demo 原始资源不动。
+; 改动点与踩坑记录见同目录 M_forest.md（.tres 不支持 ## 注释，会 Parse Error）。
+; 注意 world_background = 0（NONE）：demo 素材里是 2（纯色），从相机下方看
+; 会露出一大块蓝色（M39 首版狩猎区截图 m39_2a_hunt.png 的下半屏蓝）。
+; terrain_starter.gd 里的 _setup_material 本来想设 NONE，但它从未被调用。
+
+[sub_resource type="Gradient" id="Gradient_vr1m7"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_d8lcj"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_bov7h"]
+noise = SubResource("FastNoiseLite_d8lcj")
+color_ramp = SubResource("Gradient_vr1m7")
+seamless = true
+
+[resource]
+_shader_parameters = {
+	"_mouse_layer": 2147483648,
+	"auto_base_texture": 0,
+	"auto_height_reduction": 0.05,
+	"auto_overlay_texture": 1,
+	&"auto_shader": null,
+	"auto_slope": 0.32,
+	"bias_distance": 512.0,
+	"blend_sharpness": 0.85,
+	&"contour_color": Color(0, 0, 0, 0.8),
+	&"contour_far_opacity": 0.0800000038,
+	&"contour_half_dist": 512.0,
+	&"contour_half_thickness": 1.2,
+	&"contour_index_dist": null,
+	&"contour_index_interval": null,
+	&"contour_index_thickness": 2.0,
+	&"contour_inter_dist": 1536.0,
+	&"contour_inter_thickness": 1.2,
+	&"contour_lines": null,
+	&"contour_thermal_color": true,
+	&"contour_thermal_heights": Vector2(-200, 200),
+	"depth_blur": 0.0,
+	&"displacement": null,
+	"distant_normal_scale": 2.0,
+	"dual_scale_far": 52.0,
+	"dual_scale_near": 28.0,
+	"dual_scale_reduction": 0.65,
+	"dual_scale_texture": 0,
+	&"dual_scaling": null,
+	&"flat_terrain_normals": false,
+	&"general_uniforms": null,
+	"ground_level": -199.999962,
+	&"macro_variation": null,
+	&"macro_variation1": Color(0.62, 0.72, 0.44, 1),
+	&"macro_variation2": Color(0.86, 0.79, 0.56, 1),
+	&"macro_variation_slope": 0.55,
+	"mipmap_bias": 1.0,
+	&"mipmaps": null,
+	"noise1_angle": 0.1,
+	"noise1_offset": Vector2(0.5, 0.5),
+	"noise1_scale": 0.04,
+	"noise2_scale": 0.076,
+	"noise_texture": SubResource("NoiseTexture2D_bov7h"),
+	&"private": null,
+	"region_blend": 0.9600000456,
+	"tri_scale_reduction": 0.3,
+	&"world_background_noise": null,
+	"world_noise_fragment_normals": false,
+	"world_noise_height": 64.00001585487689,
+	"world_noise_lod_distance": 7500.0,
+	"world_noise_max_octaves": 4,
+	"world_noise_min_octaves": 2,
+	"world_noise_offset": Vector3(-0.67, -4, -2.61),
+	"world_noise_scale": 5.0
+}
+world_background = 0
+auto_shader_enabled = true
+dual_scaling_enabled = true
+macro_variation_enabled = true
+projection_enabled = true
+displacement_sharpness = 0.25

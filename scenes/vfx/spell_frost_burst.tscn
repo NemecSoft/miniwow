@@ -1,0 +1,53 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://assets/vfx/self_destroy_particles.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="mat"]
+transparency = 1
+shading_mode = 1
+emission_enabled = true
+emission = Color(0.5, 0.85, 1, 1)
+emission_energy_multiplier = 4.0
+albedo_color = Color(0.5, 0.85, 1, 1)
+no_depth_test = true
+
+[sub_resource type="Curve" id="curve_a"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 1), 0.0, 0.0, 0, 0, Vector2(0.7, 0.7), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="ct_a"]
+curve = SubResource("curve_a")
+
+[sub_resource type="Curve" id="curve_s"]
+_data = [Vector2(0, 0.2), 0.0, 0.0, 0, 0, Vector2(0.3, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="ct_s"]
+curve = SubResource("curve_s")
+
+[sub_resource type="ParticleProcessMaterial" id="ppm"]
+emission_shape = 1
+emission_sphere_radius = 0.3
+direction = Vector3(0, 1, 0)
+spread = 120.0
+initial_velocity_min = 1.5
+initial_velocity_max = 3.5
+gravity = Vector3(0, -1, 0)
+scale_min = 0.2
+scale_max = 0.6
+scale_curve = SubResource("ct_s")
+alpha_curve = SubResource("ct_a")
+color = Color(0.5, 0.85, 1, 1)
+
+[sub_resource type="QuadMesh" id="quad"]
+
+[node name="SpellFrostBurst" type="GPUParticles3D"]
+material_override = SubResource("mat")
+cast_shadow = 0
+amount = 24
+lifetime = 0.7
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource("ppm")
+draw_pass_1 = SubResource("quad")
+script = ExtResource("1_script")

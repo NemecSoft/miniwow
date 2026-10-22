@@ -6,8 +6,8 @@
 [ext_resource type="PackedScene" path="res://assets/kaykit_env/Couch.gltf" id="3_couch"]
 [ext_resource type="PackedScene" path="res://assets/kaykit_env/Flag.gltf" id="5_flag"]
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pit"]
-shading_mode = 0
-albedo_color = Color(0, 0, 0, 1)
+albedo_color = Color(0.19, 0.16, 0.12, 1)
+roughness = 1.0
 proximity_fade_enabled = true
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_pit"]

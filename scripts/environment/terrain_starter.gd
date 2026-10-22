@@ -1,428 +1,263 @@
 extends Node3D
 
-## M19 贫瘠之地地形（按用户规格）：魔兽世界 Barrens 风格稀树草原。
-## 【尺寸】2048x2048 米（region_size 512 → 4x4=16 regions），高度 0-100m
-## 【高度】平原 55-65m / 丘陵 65-80m / 干涸河床 35-48m / 绿洲洼地 30-38m
-## 【材质】程序生成通道打包纹理四套（红土/枯黄草/岩石/绿洲植被），
-##         control map 逐像素绘制 base/overlay/blend（set_control_* API）
-## 【色彩】温暖土黄 + 赤褐，无饱和绿；绿洲点缀枯绿
-## 旧 GridMap 区域（主城 + 三张 KayKit 图）压到 0m 盆地中继续可用；
-## 角色出生点迁移到新地图南部平原（level.gd RESPAWN_POINT）。
-## 碰撞不开（玩法物理仍走 GridMap/保护区），雕刻可在编辑器继续。
+## 星球地形（M45 立方球 / M46 多星球）
+##
+## 用立方球（cube-sphere）生成 6 块大陆/区域：每面 SEG×SEG 个四边形投射到球面，
+## 高度取自 Planet.height_at()，配色/雪线/熔岩色由 PlanetProfile 灌进 shader。
+##
+## 【为什么不再用 Terrain3D】
+##   Terrain3D 是高度场（Y 向上的平面网格），做不了球面。
+##   球面地形用「解析吸附」做贴地（见 player.gd 的 _planet_frame_step），
+##   不需要三角网碰撞体——几十万面的 trimesh 物理查询会把帧率吃掉。
+##
+## 【兼容】保留 `terrain` 字段（恒为 null）。旧脚本的 `starter.terrain != null`
+##   判断会自动降级跳过，不会崩。
 
-const BAKED_DIR := "res://assets/terrain3d_world"
-const WORLD_SIZE := 2048
-const HALF := WORLD_SIZE / 2.0
+const SEG := 180                    # 每面 180 段（181×181 顶点，6 面共 19.6 万顶点）
+const TERRAIN_SHADER := "res://shaders/world_terrain.gdshader"
+const MASK_SIZE := 512              # 平面遮罩（只对面 0 有效：道路/草原/红土/熔岩）
 
-# GridMap 保护区（保留区）：压到 0m 盆地
-const PROTECTED_ZONES := [
-	[Vector2(0, 0), 55.0],
-	[Vector2(0, 70), 45.0],
-	[Vector2(60, 70), 45.0],
-	[Vector2(-60, 70), 45.0],
-]
-const BASIN_HEIGHT := -0.5
-# 绿洲（十字路口 = 地图中部偏北）：[中心, 半径]
-const OASIS_ZONES := [
-	[Vector2(60, -280), 26.0],
-	[Vector2(-70, -320), 24.0],
-	[Vector2(-10, -240), 22.0],
-]
-const OASIS_FLOOR := 31.0
-const WATER_LEVEL := 34.5
-# 纹理槽位
-const TEX_ROCK := 0
-const TEX_REDSOIL := 1
-const TEX_SAVANNA := 2
-const TEX_OASIS := 3
-# 植被
-const TREE_COUNT := 260
-const ROCK_COUNT := 90
-
-var terrain: Terrain3D
-var _camera_bound := false
-
-
-func _process(_delta: float) -> void:
-	if _camera_bound or terrain == null:
-		return
-	var cam := get_viewport().get_camera_3d()
-	if cam != null:
-		terrain.set_camera(cam)
-		terrain.set_physics_process(true)
-		_camera_bound = true
+## 兼容字段：球面世界没有 Terrain3D 实例
+var terrain: Terrain3D = null
+var mask_texture: ImageTexture
+var planet_mesh: MeshInstance3D
+var ocean_mesh: MeshInstance3D
+## 无海洋星球（外域）的虚空球壳
+var void_mesh: MeshInstance3D
 
 
 func _ready() -> void:
+	# 【M47】环境容器必须无变换 —— 球面世界里"世界 Y 向上"这件事根本不存在。
+	# level.tscn 里的 Environment 曾经带 y=+2.2542782（平面时代"把地面抬高
+	# 2.25 米"的遗留）。在球面上这等于把**整棵环境子树**（地形网格/Sky3D/
+	# 竞技场/森林）沿世界 Y 平移 2.254 米：各点法线与世界 Y 的夹角不同，
+	# 于是半径误差到处不一样（实测玩家出生点处网格低了 0.366m，正好是
+	# 2.254 × 0.162），角色就悬在半空。场景里已删除，这里再做一道运行时兜底。
+	var env_parent := get_parent()
+	if env_parent is Node3D:
+		var ep := env_parent as Node3D
+		if ep.position.length_squared() > 1e-9:
+			printerr("[Planet] Environment 容器带位移 %s，强制归零（球面世界不允许）" % str(ep.position))
+			ep.position = Vector3.ZERO
+	VillageData.ensure_loaded()
+	var prof := Planet.profile()
+	if prof.uses_zone_mask:
+		mask_texture = _load_or_bake_mask()
+	_build_planet()
+	if prof.has_ocean:
+		_build_ocean()
+	else:
+		_build_void_shell()
 	if DisplayServer.get_name() == "headless":
 		set_physics_process(false)
-		return
-	terrain = await create_terrain()
 
 
-func create_terrain() -> Terrain3D:
-	printerr("[Terrain] create_terrain 开始")
-	terrain = Terrain3D.new()
-	terrain.name = "Terrain3D"
-	var baked_globally := ProjectSettings.globalize_path(BAKED_DIR)
-	var has_baked := DirAccess.dir_exists_absolute(BAKED_DIR) \
-			and DirAccess.get_files_at(baked_globally).size() > 0
+## 兼容接口：旧代码用 starter.terrain.data.get_height(pos)，统一改成 starter.height_at_pos(pos)
+func height_at_pos(pos: Vector3) -> float:
+	return Planet.height_at(pos)
 
-	add_child(terrain, true)
-	if has_baked:
-		# 官方属性顺序：data_directory → material → assets
-		terrain.region_size = 512
-		printerr("[Terrain] 开始加载烘焙数据...")
-		terrain.data_directory = BAKED_DIR
-		printerr("[Terrain] 已加载烘焙贫瘠之地 assets/terrain3d_world/")
-		_setup_material(terrain)
-		_setup_textures(terrain)
-	else:
-		terrain.region_size = 512
-		_setup_material(terrain)
-		_setup_textures(terrain)
-		# 1) 高度图（16 位灰度规格的浮点等价：像素值 = 高度米 / 100）
-		var img: Image = await build_heightmap()
-		terrain.region_size = 512
-		terrain.data.import_images([img, null, null], Vector3(-HALF, 0, -HALF), 0.0, 100.0)
-		printerr("[Terrain] 高度图完成")
-		# 2) control map 材质绘制（红土/枯草/岩石/绿洲）
-		await paint_control_maps()
-		printerr("[Terrain] 材质绘制完成")
-		# 3) 保存 region（此后走 data_directory 快速加载，编辑器可继续雕）
-		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(BAKED_DIR))
-		terrain.data.save_directory(BAKED_DIR)
-		printerr("[Terrain] 已保存到 assets/terrain3d_world/")
 
+func surface_height(pos: Vector3) -> float:
+	return Planet.RADIUS + Planet.height_at(pos)
+
+
+# ===== 遮罩（平面世界的道路/区域，只用于面 0）=====
+
+func _mask_cache_path() -> String:
+	return ProjectSettings.globalize_path("user://world_mask_v2_%d.png" % MASK_SIZE)
+
+
+func _load_or_bake_mask() -> ImageTexture:
+	var p := _mask_cache_path()
+	var img: Image = null
+	if FileAccess.file_exists(p):
+		img = Image.load_from_file(p)
+		if img != null and (img.get_width() != MASK_SIZE or img.get_height() != MASK_SIZE):
+			img = null
+	if img == null:
+		var t0 := Time.get_ticks_msec()
+		img = WorldShape.build_mask_image(MASK_SIZE)
+		img.save_png(p)
+		printerr("[Planet] 遮罩烘焙 %dms" % (Time.get_ticks_msec() - t0))
+	return ImageTexture.create_from_image(img)
+
+
+# ===== 球面网格 =====
+
+func _build_planet() -> void:
 	var t0 := Time.get_ticks_msec()
-	populate_trees()
-	printerr("[Terrain] trees_ms=", Time.get_ticks_msec() - t0)
-	var t1 := Time.get_ticks_msec()
-	build_oasis_water()
-	printerr("[Terrain] water_ms=", Time.get_ticks_msec() - t1)
-	return terrain
+	var total_verts := 0
+	var root := Node3D.new()
+	root.name = "PlanetSurface"
+	add_child(root)
 
+	var mat := ShaderMaterial.new()
+	mat.shader = load(TERRAIN_SHADER) as Shader
+	# 遮罩：无海洋/无遮罩星球给一张全黑 1x1，避免 sampler 未绑定警告
+	if mask_texture != null:
+		mat.set_shader_parameter("mask_tex", mask_texture)
+	else:
+		var blank := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+		blank.fill(Color(0, 0, 0, 0))
+		mat.set_shader_parameter("mask_tex", ImageTexture.create_from_image(blank))
+	# 星球调色板（M46：数组 uniform）
+	var params := Planet.profile().shader_params()
+	for k in params:
+		mat.set_shader_parameter(k, params[k])
 
-func _setup_material(t: Terrain3D) -> void:
-	t.material.world_background = Terrain3DMaterial.NONE
-
-
-## 程序生成通道打包纹理四套（规范：Albedo RGB 颜色 + A 高度细节；
-## Normal RGB 法线 + A 粗糙度），存 PNG 到 assets/terrain3d_barrens/
-func _setup_textures(t: Terrain3D) -> void:
-	var out_dir := ProjectSettings.globalize_path("res://assets/terrain3d_barrens")
-	var sets := [
-		{ # 岩石/岩盘：灰褐，锐利岩面，高粗糙
-			"name": "rock", "c0": Color(0.412, 0.412, 0.412), "c1": Color(0.522, 0.482, 0.443),
-			"rough": 0.95, "detail": "ridge", "uv": 0.35,
-		},
-		{ # 红土/荒地：赤褐，干裂纹路，高粗糙
-			"name": "redsoil", "c0": Color(0.545, 0.271, 0.075), "c1": Color(0.627, 0.322, 0.176),
-			"rough": 0.85, "detail": "crack", "uv": 0.25,
-		},
-		{ # 枯黄稀树草原：枯黄，草簇微起伏，中低粗糙
-			"name": "savanna", "c0": Color(0.769, 0.639, 0.353), "c1": Color(0.851, 0.741, 0.478),
-			"rough": 0.55, "detail": "grass", "uv": 0.18,
-		},
-		{ # 绿洲湿润植被：暗绿，平滑湿润，低粗糙
-			"name": "oasis", "c0": Color(0.290, 0.365, 0.137), "c1": Color(0.361, 0.427, 0.192),
-			"rough": 0.35, "detail": "grass", "uv": 0.2,
-		},
-	]
-	var assets: Array[Terrain3DTextureAsset] = []
-	for i in sets.size():
-		var s: Dictionary = sets[i]
-		var alb_path := "res://assets/terrain3d_barrens/%s_alb_ht.png" % s.name
-		var nrm_path := "res://assets/terrain3d_barrens/%s_nrm_rgh.png" % s.name
-		if not ResourceLoader.exists(alb_path):
-			var pair := _make_texture_set(s.c0, s.c1, s.rough, s.detail)
-			DirAccess.make_dir_recursive_absolute(out_dir)
-			pair[0].save_png(out_dir + "/%s_alb_ht.png" % s.name)
-			pair[1].save_png(out_dir + "/%s_nrm_rgh.png" % s.name)
-		var ta := Terrain3DTextureAsset.new()
-		ta.name = s.name.capitalize()
-		ta.albedo_texture = load(alb_path)
-		ta.normal_texture = load(nrm_path)
-		ta.uv_scale = s.uv
-		ta.normal_depth = 1.0
-		ta.ao_strength = 1.5
-		assets.append(ta)
-
-	t.assets = Terrain3DAssets.new()
-	for i in assets.size():
-		t.assets.set_texture(i, assets[i])
-
-
-## 生成一套通道打包纹理：返回 [albedo(RGB色+A高度), normal(RGB法线+A粗糙)]
-func _make_texture_set(c0: Color, c1: Color, rough: float, detail: String) -> Array:
-	var sz := 512
-	var fbm := FastNoiseLite.new()
-	fbm.fractal_octaves = 4
-	fbm.frequency = 0.02
-	var detail_n := FastNoiseLite.new()
-	detail_n.seed = hash(detail)
-	if detail == "crack":
-		detail_n.noise_type = FastNoiseLite.TYPE_CELLULAR
-		detail_n.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_DIV
-		detail_n.frequency = 0.035
-	elif detail == "ridge":
-		detail_n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-		detail_n.fractal_octaves = 5
-		detail_n.frequency = 0.03
-		detail_n.domain_warp_enabled = true
-	else: # grass 细碎草簇
-		detail_n.frequency = 0.09
-
-	var alb := Image.create_empty(sz, sz, false, Image.FORMAT_RGBA8)
-	var nrm := Image.create_empty(sz, sz, false, Image.FORMAT_RGBA8)
-	var heights: PackedFloat32Array = PackedFloat32Array()
-	heights.resize(sz * sz)
-	for y in sz:
-		for x in sz:
-			var macro: float = fbm.get_noise_2d(x, y) # 大色块（红土/深浅斑驳）
-			var micro: float = detail_n.get_noise_2d(x, y) # 细节（裂纹/草簇/岩面）
-			var m01: float = clampf(macro * 0.5 + 0.5, 0.0, 1.0)
-			var col: Color = c0.lerp(c1, m01)
-			# A 通道 = 高度细节
-			var h01: float = clampf(micro * 0.5 + 0.5, 0.0, 1.0)
-			alb.set_pixel(x, y, Color(col.r, col.g, col.b, h01))
-			heights[y * sz + x] = h01
-	# 法线从高度差分，A = 粗糙度
-	for y in sz:
-		for x in sz:
-			var hl: float = heights[y * sz + (x - 1) % sz]
-			var hr: float = heights[y * sz + (x + 1) % sz]
-			var hu: float = heights[((y - 1) % sz) * sz + x]
-			var hd: float = heights[((y + 1) % sz) * sz + x]
-			var n := Vector3((hl - hr) * 2.0, (hd - hu) * 2.0, 1.0).normalized()
-			var nx: float = n.x * 0.5 + 0.5
-			var ny: float = n.y * 0.5 + 0.5 # OpenGL +Y
-			var nz: float = n.z * 0.5 + 0.5
-			nrm.set_pixel(x, y, Color(nx, ny, nz, rough))
-	return [alb, nrm]
-
-
-## 高度图（像素值 = 高度米/100，对应"16 位灰度归一化 + Height Scale 100"规格）
-func build_heightmap() -> Image:
-	var plain := FastNoiseLite.new()
-	plain.frequency = 0.0015
-	plain.fractal_octaves = 3
-	var hills := FastNoiseLite.new()
-	hills.frequency = 0.004
-	hills.fractal_octaves = 4
-	hills.seed = 11
-	var gully := FastNoiseLite.new() # 侵蚀沟壑走向
-	gully.frequency = 0.006
-	gully.seed = 23
-
-	var img: Image = Image.create_empty(WORLD_SIZE, WORLD_SIZE, false, Image.FORMAT_RF)
-	for px in WORLD_SIZE:
-		var wx: float = px - HALF
-		for pz in WORLD_SIZE:
-			var wz: float = pz - HALF
-			var world := Vector2(wx, wz)
-
-			# 基础平原 55-65m
-			var h := 60.0 + plain.get_noise_2d(px, pz) * 5.0
-			# 丘陵 65-80m：噪声门控的区域隆起
-			var hill_mask: float = hills.get_noise_2d(px, pz)
-			if hill_mask > 0.15:
-				h += clampf((hill_mask - 0.15) * 2.2, 0.0, 1.0) * 20.0
-			# 干涸河床/侵蚀沟壑 35-48m：蜿蜒谷
-			var river_d: float = absf(wx - _dry_river_x(wz))
-			if river_d < 70.0:
-				var gully_extra: float = clampf(gully.get_noise_2d(px, pz) * 12.0, -6.0, 6.0)
-				var t: float = clampf((70.0 - river_d) / 52.0, 0.0, 1.0)
-				t = t * t * (3.0 - 2.0 * t)
-				h = lerpf(h, 41.0 + gully_extra, t)
-			# 绿洲洼地 30-38m：宽过渡平滑凹陷（避免陡峭漏斗）
-			for oasis in OASIS_ZONES:
-				var d: float = world.distance_to(oasis[0])
-				var radius: float = oasis[1]
-				if d < radius * 2.6:
-					var t: float = clampf((radius * 2.6 - d) / (radius * 1.8), 0.0, 1.0)
-					t = t * t * (3.0 - 2.0 * t)
-					var floor_h: float = OASIS_FLOOR + clampf((d / radius) * 3.0, 0.0, 3.0)
-					h = lerpf(h, floor_h, t)
-
-			# GridMap 保留区压到盆地（最高优先级）
-			var zone_d := _zone_distance(world)
-			if zone_d <= 0.0:
-				h = BASIN_HEIGHT
-			else:
-				var blend: float = clampf(zone_d / 100.0, 0.0, 1.0)
-				blend = blend * blend * (3.0 - 2.0 * blend)
-				h = lerpf(BASIN_HEIGHT, h, blend)
-
-			img.set_pixel(px, pz, Color(clampf(h, 0.0, 100.0) / 100.0, 0.0, 0.0, 1.0))
-	return img
-
-
-func rng_oasis_floor(d: float, radius: float) -> float:
-	# 洼底微起伏（0~2m），水面 34.5 之下保持池状
-	return clampf((d / radius) * 2.0, 0.0, 2.0)
-
-
-## 干涸河床中心线（南北向蜿蜒）
-func _dry_river_x(z: float) -> float:
-	return -240.0 + 130.0 * sin(z * 0.0014) + 55.0 * sin(z * 0.0006 + 2.1)
-
-
-## control map 材质绘制：逐像素 base/overlay/blend（官方 set_control_* API）
-func paint_control_maps() -> void:
-	var blend_n := FastNoiseLite.new()
-	blend_n.frequency = 0.008
-	blend_n.seed = 99
-	var painted := 0
-	for px in WORLD_SIZE:
-		var wx: float = px - HALF
-		for pz in WORLD_SIZE:
-			var wz: float = pz - HALF
-			var world := Vector2(wx, wz)
-			var pos := Vector3(wx, 0, wz)
-			var zone_d := _zone_distance(world)
-			if zone_d <= 2.0:
-				continue # GridMap 保护区保持默认，无所谓
-			var h: float = terrain.data.get_height(pos)
-			# 坡度（2m 差分）
-			var hx: float = terrain.data.get_height(pos + Vector3(2, 0, 0)) - h
-			var hz: float = terrain.data.get_height(pos + Vector3(0, 0, 2)) - h
-			var slope: float = sqrt(hx * hx + hz * hz) / 2.0
-
-			var in_oasis := false
-			var oasis_edge := 1.0
-			for oasis in OASIS_ZONES:
-				var d: float = world.distance_to(oasis[0])
-				if d < oasis[1] * 1.5:
-					in_oasis = true
-					oasis_edge = clampf((oasis[1] * 1.5 - d) / (oasis[1] * 0.7), 0.0, 1.0)
-					break
-
-			if slope > 0.55:
-				# 陡坡 → 岩石
-				terrain.data.set_control_auto(pos, false)
-				terrain.data.set_control_base_id(pos, TEX_ROCK)
-			elif in_oasis and h < 39.0:
-				# 绿洲洼地 → 湿润植被，边缘与红土过渡
-				terrain.data.set_control_auto(pos, false)
-				terrain.data.set_control_base_id(pos, TEX_OASIS if oasis_edge > 0.5 else TEX_REDSOIL)
-				terrain.data.set_control_overlay_id(pos, TEX_OASIS)
-				terrain.data.set_control_blend(pos, clampf(oasis_edge, 0.1, 0.9))
-			else:
-				# 主地面：红土底 + 枯黄草 overlay 噪声混合（约 50/35）
-				var b: float = blend_n.get_noise_2d(px, pz) * 0.5 + 0.5
-				terrain.data.set_control_auto(pos, false)
-				terrain.data.set_control_base_id(pos, TEX_REDSOIL)
-				terrain.data.set_control_overlay_id(pos, TEX_SAVANNA)
-				terrain.data.set_control_blend(pos, clampf(b, 0.15, 0.85))
-			painted += 1
-	printerr("[Terrain] painted=", painted)
-
-
-func _zone_distance(world_pos: Vector2) -> float:
-	var worst := INF
-	for zone in PROTECTED_ZONES:
-		worst = minf(worst, world_pos.distance_to(zone[0]) - zone[1])
-	return worst
-
-
-func _outside_zones(world_pos: Vector2) -> bool:
-	return _zone_distance(world_pos) > 0.0
-
-
-## 稀树草原植被：稀疏枯树 + 绿洲旁密植（橄榄色树冠）
-func populate_trees() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 20261017
-	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.top_radius = 0.15
-	trunk_mesh.bottom_radius = 0.28
-	trunk_mesh.height = 3.0
-	trunk_mesh.radial_segments = 6
-	var trunk_mat := StandardMaterial3D.new()
-	trunk_mat.albedo_color = Color(0.42, 0.30, 0.18, 1)
-	trunk_mat.roughness = 0.95
-	trunk_mesh.material = trunk_mat
-
-	var leaf_mesh := CylinderMesh.new()
-	leaf_mesh.top_radius = 0.0
-	leaf_mesh.bottom_radius = 1.8
-	leaf_mesh.height = 2.2
-	leaf_mesh.radial_segments = 8
-	var leaf_mat := StandardMaterial3D.new()
-	leaf_mat.albedo_color = Color(0.36, 0.40, 0.20, 1) # 枯橄榄绿（非饱和）
-	leaf_mat.roughness = 0.9
-	leaf_mesh.material = leaf_mat
-
-	var near_oasis: Array[Transform3D] = []
-	var far_trees: Array[Transform3D] = []
-	var attempts := 0
-	var target := TREE_COUNT
-	while near_oasis.size() + far_trees.size() < target and attempts < target * 40:
-		attempts += 1
-		var pos := Vector3(rng.randf_range(-HALF + 40, HALF - 40), 0, rng.randf_range(-HALF + 40, HALF - 40))
-		if not _outside_zones(Vector2(pos.x, pos.z)):
+	for face in Planet.FACE_COUNT:
+		var mesh := _build_face(face)
+		if mesh == null:
 			continue
-		var h: float = terrain.data.get_height(pos)
-		if h < 30.0 or h > 85.0:
-			continue
-		var hx: float = terrain.data.get_height(pos + Vector3(2, 0, 0)) - h
-		var hz: float = terrain.data.get_height(pos + Vector3(0, 0, 2)) - h
-		if sqrt(hx * hx + hz * hz) > 0.8:
-			continue
-		var oasis_near := false
-		for oasis in OASIS_ZONES:
-			if Vector2(pos.x, pos.z).distance_to(oasis[0]) < oasis[1] * 3.0:
-				oasis_near = true
-				break
-		var basis := Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(
-			Vector3.ONE * rng.randf_range(0.7, 1.5))
-		var xf := Transform3D(basis, Vector3(pos.x, h - 0.1, pos.z))
-		if oasis_near:
-			near_oasis.append(xf) # 绿洲旁密植
-			near_oasis.append(xf) # 双份密度
-		elif rng.randf() < 0.35: # 稀树草原：远处仅 35% 保留
-			far_trees.append(xf)
-
-	_add_multimesh(trunk_mesh, near_oasis)
-	_add_multimesh(leaf_mesh, near_oasis)
-	_add_multimesh(trunk_mesh, far_trees)
-	_add_multimesh(leaf_mesh, far_trees)
-
-
-func _add_multimesh(mesh: Mesh, xforms: Array[Transform3D]) -> void:
-	if xforms.is_empty():
-		return
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = mesh
-	mm.instance_count = xforms.size()
-	for i in xforms.size():
-		mm.set_instance_transform(i, xforms[i])
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	add_child(mmi)
+		total_verts += (SEG + 1) * (SEG + 1)
+		var mi := MeshInstance3D.new()
+		mi.name = "Face%d" % face
+		mi.mesh = mesh
+		mi.material_override = mat
+		# 球面是凸的，背面永远看不到；关掉背面剔除省一半光栅
+		root.add_child(mi)
+		# 【M47 架构】碰撞体**直接由渲染网格生成**——模型与碰撞天生逐三角形一致。
+		#
+		# 之前地形没有任何碰撞体，所以"人站在哪"只能靠 height_at() 解析式去猜，
+		# 再把猜的值和渲染网格对不上（实测差 0.3~5.4m），于是不停地加 offset 补偿。
+		# 按 Godot 官方建议（Collision shapes 3D）："concave shapes are the best
+		# approach for a level's collision" —— 静态关卡就该用网格自身的 trimesh。
+		# 从此贴地不再需要任何"算高度"，交给 move_and_slide()。
+		var body := StaticBody3D.new()
+		body.name = "Face%dBody" % face
+		body.collision_layer = 2          # 静态世界层，与广场地台一致
+		body.collision_mask = 0
+		var cshape := CollisionShape3D.new()
+		cshape.shape = mesh.create_trimesh_shape()
+		body.add_child(cshape)
+		mi.add_child(body)
+		planet_mesh = mi
+	printerr("[Planet] 6 面网格完成 顶点 %d 耗时 %dms" % [total_verts, Time.get_ticks_msec() - t0])
 
 
-## 绿洲水池：三个洼地中心放圆水面
-func build_oasis_water() -> void:
-	var water_mat := StandardMaterial3D.new()
-	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	water_mat.albedo_color = Color(0.30, 0.52, 0.55, 0.8) # 微浊蓝绿
-	water_mat.roughness = 0.06
-	water_mat.metallic = 0.15
-	var water_mesh := PlaneMesh.new()
-	water_mesh.size = Vector2(38, 38)
-	water_mesh.material = water_mat
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = water_mesh
-	mm.instance_count = OASIS_ZONES.size()
-	for i in OASIS_ZONES.size():
-		var c: Vector2 = OASIS_ZONES[i][0]
-		mm.set_instance_transform(i, Transform3D(Basis(), Vector3(c.x, WATER_LEVEL, c.y)))
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mmi)
+func _build_face(face: int) -> ArrayMesh:
+	var n := SEG + 1
+	var verts := PackedVector3Array()
+	verts.resize(n * n)
+	var normals := PackedVector3Array()
+	normals.resize(n * n)
+	var uvs := PackedVector2Array()
+	uvs.resize(n * n)
+	var colors := PackedColorArray()
+	colors.resize(n * n)
+	# 【M47】把每个顶点的高度原样交给 Planet 缓存。
+	# 贴地必须用"渲染网格真实顶点"的插值，不能用 height_at 重算一遍 ——
+	# 实测两者差 0.30m（探针 mesh_ground_probe：玩家比渲染网格高 0.366m），
+	# 角色就悬在半空。缓存后 mesh_height 与渲染网格逐字节一致。
+	var heights := PackedFloat32Array()
+	heights.resize(n * n)
+	var face_col := Color(float(face) / 5.0, 0.0, 0.0, 1.0)
+
+	var step := 2.0 / float(SEG)
+	for iy in n:
+		var v: float = -1.0 + step * float(iy)
+		for ix in n:
+			var u: float = -1.0 + step * float(ix)
+			var d := Planet.dir_of(face, u, v)
+			var h := Planet.height_at(d)
+			var i: int = iy * n + ix
+			verts[i] = d * (Planet.RADIUS + h)
+			uvs[i] = Vector2(u, v)
+			colors[i] = face_col
+			heights[i] = h
+
+	Planet.set_mesh_cache(face, heights)
+
+	# 法线：用相邻顶点差分（球面切向叉积），比直接用 d 更能表现山体明暗
+	for iy in n:
+		for ix in n:
+			var i: int = iy * n + ix
+			var xl: int = iy * n + maxi(ix - 1, 0)
+			var xr: int = iy * n + mini(ix + 1, n - 1)
+			var yt: int = mini(iy + 1, n - 1) * n + ix
+			var yb: int = maxi(iy - 1, 0) * n + ix
+			var du := verts[xr] - verts[xl]
+			var dv := verts[yt] - verts[yb]
+			var nrm := du.cross(dv)
+			if nrm.length_squared() < 1e-9:
+				nrm = verts[i]
+			nrm = nrm.normalized()
+			# 保证朝外（球面法线同向）
+			if nrm.dot(verts[i]) < 0.0:
+				nrm = -nrm
+			normals[i] = nrm
+
+	var idx := PackedInt32Array()
+	idx.resize(SEG * SEG * 6)
+	var k := 0
+	for iy in SEG:
+		for ix in SEG:
+			var i0: int = iy * n + ix
+			var i1: int = i0 + 1
+			var i2: int = i0 + n
+			var i3: int = i2 + 1
+			# 绕序：从球外看为顺时针（Godot 正面 = 顺时针）
+			idx[k] = i0
+			idx[k + 1] = i2
+			idx[k + 2] = i1
+			idx[k + 3] = i1
+			idx[k + 4] = i2
+			idx[k + 5] = i3
+			k += 6
+
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+# ===== 海洋球壳（艾泽拉斯）=====
+
+func _build_ocean() -> void:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/planet_ocean.gdshader") as Shader
+	mat.set_shader_parameter("planet_radius", Planet.RADIUS)
+	var sphere := SphereMesh.new()
+	sphere.radius = Planet.RADIUS + Planet.SEA_LEVEL
+	sphere.height = (Planet.RADIUS + Planet.SEA_LEVEL) * 2.0
+	sphere.radial_segments = 160
+	sphere.rings = 90
+	sphere.material = mat
+	ocean_mesh = MeshInstance3D.new()
+	ocean_mesh.name = "Ocean"
+	ocean_mesh.mesh = sphere
+	ocean_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ocean_mesh)
+	printerr("[Planet] 海洋球壳 R+%d" % int(Planet.SEA_LEVEL))
+
+
+# ===== 虚空球壳（外域）=====
+
+## 外域没有海洋，边缘是断崖直接坠入虚空。这里在 sea_floor 处铺一层暗紫球壳
+## 当作"虚空的底"，让断崖看起来是插进虚空而不是插进空气。
+## 必须不透明：半透明球壳会把整颗星球扣成一个玻璃罩（M45 海洋踩过这个坑）。
+func _build_void_shell() -> void:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/planet_void.gdshader") as Shader
+	mat.set_shader_parameter("planet_radius", Planet.RADIUS)
+	var col := Planet.profile().void_color
+	mat.set_shader_parameter("void_color", Vector3(col.r, col.g, col.b))
+	var r: float = Planet.RADIUS + Planet.SEA_FLOOR
+	var sphere := SphereMesh.new()
+	sphere.radius = r
+	sphere.height = r * 2.0
+	sphere.radial_segments = 128
+	sphere.rings = 72
+	sphere.material = mat
+	void_mesh = MeshInstance3D.new()
+	void_mesh.name = "VoidShell"
+	void_mesh.mesh = sphere
+	void_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(void_mesh)
+	printerr("[Planet] 虚空球壳 R%+d" % int(Planet.SEA_FLOOR))

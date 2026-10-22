@@ -1,7 +1,5 @@
 extends CanvasLayer
 
-class_name HUD
-
 @export var play_char : PlayerCharacter
 
 @onready var current_state_label_text: Label = %CurrentStateLabelText

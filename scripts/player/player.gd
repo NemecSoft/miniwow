@@ -13,6 +13,8 @@ const SERVER_ANIMATION_REQUEST_BURST := 6.0
 const PICKUP_ANIMATION_DELAY_MSEC := 200
 const PICKUP_ANIMATION_WINDOW_MSEC := 1200
 const PICKUP_REQUEST_COOLDOWN_MSEC := 1000
+## M24：bot 虚拟 peer id 基数（与 BotController.BOT_ID_BASE 同值，避免循环引用）
+const BOT_AUTH_BASE := 9001
 
 ## M11：技能 → 音效映射（key 见 SfxManager._LIBRARY）。
 ## basic_attack 不在表内——普攻音效由 _play_attack_animation 按动画播。
@@ -85,7 +87,9 @@ const ALLOWED_ANIMATION_STATES := {
 	# M18b-3：KayKit 备用视觉新增状态（机器人侧无此动画自动跳过）
 	&"Dodge": true,
 	&"Block": true,
-	&"Death": true
+	&"Death": true,
+	# M29：骑乘坐姿（悬浮沙发）——GodotRobot 侧为 Universal 库烘焙动画
+	&"Sit": true
 }
 const HAT_NODES_BY_ITEM := {
 	"fedora": "Fedora",
@@ -101,6 +105,7 @@ const HAT_NODES_BY_ITEM := {
 }
 const WEAPON_NODES_BY_ITEM := {
 	"sword": "Sword",
+	"sword_short": "SwordShort", # M40：CC0Tree 短剑模型
 	"sword_big": "SwordBig",
 	"axe": "Axe",
 	# M3 新武器复用模板模型：铁剑/精铁剑=单手剑、亡灵利刃=大剑、战斧=斧
@@ -108,6 +113,8 @@ const WEAPON_NODES_BY_ITEM := {
 	"sword_green": "Sword",
 	"sword_blue": "SwordBig",
 	"axe_iron": "Axe",
+	# M36：气球夺剑战利品复用大剑模型
+	"balloon_sword": "SwordBig",
 }
 const BACKPACK_NODES_BY_ITEM := {"backpack": "Backpack"}
 const HEAD_EQUIPMENT_PATH := "GodotRobot3D/RobotArmature/Skeleton3D/HeadAttach/"
@@ -125,6 +132,8 @@ const FIRST_PERSON_HIDDEN_BONES: Array[StringName] = [&"Head", &"HeadTop"]
 
 ## M19：乘坐载具状态（非空 = 正在乘坐 hover_couch，本体位置由自己按座位跟随）
 var mounted_vehicle: Node3D = null
+## M27 条款 V6：骑乘中载具速度估计源（座位跟随的位置差）——驱动远程端 Sprint/Idle
+var _mounted_last_vehicle_pos: Vector3 = Vector3.ZERO
 var _terrain_probe: Node = null
 var mounted_seat: int = 0
 
@@ -134,21 +143,45 @@ func set_mounted(vehicle: Node3D, seat_index: int = 0) -> void:
 	mounted_seat = seat_index
 	velocity = Vector3.ZERO
 	is_attacking = false
+	is_blocking = false # M29b：格挡中上座会永久拦截 Sit 请求（_request_animation 的 Block 保护），必须清
 	is_collecting = false
 	_last_requested_animation = &""
-	# M19：上车瞬间一次性对齐角色朝向 = 沙发朝向（消除镜头与沙发的常数差角；
-	# 之后右键拖动的转身信号对两者同步加增量，不会发散）
+	# M42：**上座绝不改朝向**——用户硬要求"角色本来朝哪，骑上坐骑仍保持原朝向"。
+	# 旧实现 `rotation.y = vehicle.rotation.y` 把玩家根节点（相机弹簧臂的父节点）
+	# 硬拽成载具朝向：探针实测上座瞬间相机世界朝向跳 -159.6°、根节点跳 -94.3°，
+	# 这就是"莫名其妙转向"的唯一真凶（画面整体被拧，用户看到的就是角色转了）。
+	# 载具自身朝向在召唤瞬间已对齐玩家身体朝向（见 _body_anchor_yaw），
+	# 因此这里不需要任何对齐动作，上下座全程零跳变。
 	if vehicle != null:
-		rotation.y = vehicle.rotation.y
-	_request_animation(&"Idle", true)
+		# M27：上车瞬间对齐速度估计基准，避免首帧把"就位瞬移"当成高速 Sprint
+		# M28b 修复：这两行原本缩进错位到块外，下座 vehicle=null 必崩
+		# （SCRIPT ERROR global_position on Nil），并连带跳过下车动画恢复
+		_mounted_last_vehicle_pos = vehicle.global_position
+		# M29：骑乘改坐姿（原 Idle）
+		_request_animation(&"Sit", true)
+	else:
+		# M29：下车恢复站立待机
+		_request_animation(&"Idle", true)
 
 
-## M19：右键拖动转身——步行转角色节点；骑乘转沙发（角色随沙发）
+## 【M47】骑乘有效性校验：车必须在座位表里真的有本地 peer。
+## 只在骑乘分支用，所以容忍载具节点没有 seats（非载具挂载物一律放行）。
+func _mounted_still_valid() -> bool:
+	if not is_instance_valid(mounted_vehicle):
+		return false
+	var seats = mounted_vehicle.get("seats")
+	if not (seats is Dictionary):
+		return true
+	return (seats as Dictionary).has(multiplayer.get_unique_id())
+
+
+## M19：右键拖动转身——步行转角色节点；骑乘时右键只转相机（WoW 驭空术：
+## 飞行方向永远从当前相机读取，沙发朝向由移动方向驱动，杜绝相机↔节点双轨漂移）
 func _on_camera_turn(dx: float) -> void:
 	if mounted_vehicle != null:
-		mounted_vehicle.rotation.y += dx
-	else:
-		rotation.y += dx
+		return
+	# M45：绕当地法线转（球面上世界 Y 不是"上"）
+	_fwd = _fwd.rotated(_up, dx)
 
 
 ## M19：滚轮缩放镜头距离
@@ -158,22 +191,222 @@ func _on_camera_zoom(delta_length: float) -> void:
 			_spring_arm_offset.third_person_distance + delta_length, 1.5, 14.0)
 		_spring_arm_offset._apply_perspective()
 
-## M19：召唤专属沙发到身边并自动乘坐（WoW 坐骑键式）
-func _summon_mount() -> void:
-	printerr("[SUMMON] 被调用 frame=", Engine.get_physics_frames())
-	var scene := get_tree().current_scene
-	var vehicles := scene.get_node_or_null("Environment/Vehicles")
+## M19：X 召唤 = 把专属沙发放置到面前。
+## M25：召唤即骑（用户决策）——放好后立即自动上座；再按 X 下座并收回。
+## M27（docs/conventions-multiplayer-visual-sync.md 条款 V1/V2）：
+## 载具只能由服务器创建（Vehicles 下 MultiplayerSpawner 广播，含 late-join 重放），
+## 客户端严禁本地 instantiate——本地沙发只存在于一端，以其为发送方的
+## request_mount.rpc_id(1) 会在服务器 "Node not found" 静默失败（M27 事故 A/B：
+## 客户端 X/E 全废、主机坐骑客户端不可见）。
+## 因此本函数拆成两半：服务器权威路径（本地造车+就位+上座）与客户端请求路径
+## （rpc 请服务器代劳）。target_id 必须显式传递——服务器上
+## multiplayer.get_unique_id() 恒为 1，直接复用会把车造给主机而不是请求者。
+## M28：req_pos/req_yaw = 请求端按键瞬间的实时位置/朝向锚点。服务器视角的
+## 玩家位置/朝向是网络延迟旧值，移动/转视角中召唤会把玩家钉回过去的状态
+## （实测：位置有时跳、方向被拧）。客户端请求必须携带锚点；本机/bot 直调
+## 不传（INF 哨兵），锚点即自身实时状态。
+## M30：vehicle_kind = "couch"（悬浮沙发）| "car"（街机飞车）——场景与节点名随 kind 切换，
+## 召唤/上座/同步链路两种载具完全共用（服务器权威 + M28 锚点机制）。
+func _summon_mount(
+	auto_mount: bool = true, target_id: int = -1,
+	req_pos: Vector3 = Vector3(), req_yaw: float = INF,
+	vehicle_kind: String = "couch"
+) -> void:
+	var vehicles := get_node_or_null("../../Environment/Vehicles")
 	if vehicles == null:
 		return
-	var couch := vehicles.get_node_or_null("couch_%d" % multiplayer.get_unique_id())
-	if couch == null:
+	if not multiplayer.is_server():
+		# M27 条款 V1：客户端不本地造车，请求服务器在权威侧代召唤；
+		# M28：携带按 X 瞬间的实时位置/朝向锚点（服务器视角是延迟旧值；
+		# 朝向取身体世界朝向——步行身体朝移动方向，与根 rotation.y 解耦）。
+		if vehicle_kind == "car":
+			request_summon_car.rpc_id(1, global_position, _body_anchor_yaw())
+		else:
+			request_summon_mount.rpc_id(1, global_position, _body_anchor_yaw())
 		return
-	var fwd := -global_transform.basis.z
-	fwd.y = 0.0
-	fwd = fwd.normalized()
-	couch.global_position = global_position + fwd * 2.5
-	if couch.has_method("request_mount"):
-		couch.request_mount.rpc_id(1)
+	if target_id < 0:
+		target_id = get_multiplayer_authority()
+	# M28：召唤锚点——请求端实时状态优先，服务器视角值兜底。
+	# 合理性校验：请求位置与服务器视角差 > 50m 视为异常（防伪造/防串号）。
+	# 朝向：本机直调用身体世界朝向（同客户端锚点语义），req_yaw 优先。
+	var anchor_pos := global_position
+	var anchor_yaw := _body_anchor_yaw()
+	if req_yaw != INF:
+		anchor_yaw = req_yaw
+	if req_yaw != INF:
+		var anchor_dist := global_position.distance_to(req_pos)
+		if anchor_dist <= 50.0:
+			anchor_pos = req_pos
+	var scene_path := "res://scenes/vehicles/hover_couch.tscn"
+	if vehicle_kind == "car":
+		scene_path = "res://scenes/vehicles/sports_car.tscn"
+	var couch := vehicles.get_node_or_null(vehicle_kind + "_%d" % target_id)
+	if couch == null:
+		var scene := load(scene_path) as PackedScene
+		if scene == null:
+			return
+		couch = scene.instantiate()
+		couch.name = vehicle_kind + "_%d" % target_id
+		# M28：完全原地召唤——沙发定位 = 锚点位置 - 座位0偏移，玩家贴座后
+		# global_position 逐位等于按 X 瞬间的位置（零位移；旧"面前 2.5m"方案
+		# 有固有前移，用户明确要求原地）。先定位后入树（V14：add_child(true)
+		# 瞬间序列化 spawn 快照，入树后设置的位置来不及送达）。y 只做最低
+		# 防埋（站地召唤时沙发不得入地；悬空召唤完全保持玩家高度）。
+		# 朝向 = 身体世界朝向（入树前定，spawn 快照直接携带）。
+		var seat0: Vector3 = Vector3.ZERO
+		if couch.has_method("get_seat_offset"):
+			seat0 = couch.get_seat_offset(0)
+		# 座位偏移是局部的，先按车的目标朝向变换到世界再减
+		var b_anchor := _mount_basis(Planet.up_at(anchor_pos), anchor_yaw)
+		var couch_pos := anchor_pos - b_anchor * seat0
+		# 【M47】防埋不能用世界 Y 射线：球面上没有碰撞体（地形是自建 ArrayMesh），
+		# 射线直接打空；就算打中，世界 Y 在 -X 面也是水平的。
+		# 直接用网格高度算出"当地地表半径"，把车沿**当地法线**抬到地面之上。
+		var up0 := Planet.up_at(couch_pos)
+		var ground_r: float = Planet.RADIUS + Planet.mesh_height(up0)
+		if couch_pos.length() < ground_r + 0.6:
+			couch_pos = up0 * (ground_r + 0.6)
+		# 朝向上必须对齐当地法线：只设 rotation.y 会让车 basis.y 保持世界 +Y，
+		# 在球面上等于把车立起来插进地里（实测与法线夹角 98°）。
+		couch.transform = Transform3D(_mount_basis(up0, anchor_yaw),
+			vehicles.to_local(couch_pos))
+		vehicles.add_child(couch, true)
+	else:
+		# 复用路径：同样完全原地（下座后玩家可能已移动/转身，按当前锚点重定位）。
+		var seat0: Vector3 = Vector3.ZERO
+		if couch.has_method("get_seat_offset"):
+			seat0 = couch.get_seat_offset(0)
+		var b_anchor1 := _mount_basis(Planet.up_at(anchor_pos), anchor_yaw)
+		var vpos := anchor_pos - b_anchor1 * seat0
+		var up1 := Planet.up_at(vpos)
+		var ground_r1: float = Planet.RADIUS + Planet.mesh_height(up1)
+		if vpos.length() < ground_r1 + 0.6:
+			vpos = up1 * (ground_r1 + 0.6)
+		couch.global_transform = Transform3D(_mount_basis(up1, anchor_yaw), vpos)
+	# M25：召唤即骑——沙发就位后立即上座（距离 2.5m 在 MOUNT_RANGE*2 内）
+	# M27 条款 V2：代召唤场景走 server_mount_peer 本地直调。不可沿用
+	# request_mount.rpc_id(1)——其 sender==0→1 归一会把请求者误判成主机(peer 1)，
+	# 客户端按 X 结果给主机上了座（M27 高危陷阱）。
+	# M28：锚点模式下请求者真实位置可能在锚点附近而非服务器旧值处——
+	# 距离校验放宽到锚点距离（MOUNT_RANGE*2 + 5m 余量），拒绝时仅告警不静默。
+	if auto_mount and couch.has_method("server_mount_peer"):
+		couch.server_mount_peer(target_id, anchor_pos)
+
+
+## M28：身体世界朝向对应的沙发 yaw。
+## **M55 修正**：朝向角必须相对**当地切平面**表达，不能用 `atan2(x, z)`。
+## 球面上世界 XZ 平面不是水平面：up 接近 ±X 时，atan2 会把 90° 的朝向读成 0°
+## （实测沙发前方与身体正面差 85.5°，就是"飞行器歪着"的真因）。
+## 现在编码/解码共用 Planet.yaw_of / basis_from_yaw（同一参考轴，严格互逆）。
+func _mount_basis(up: Vector3, yaw: float) -> Basis:
+	return Planet.basis_from_yaw(up, yaw)
+
+
+## 身体正面 → 绕当地法线的角度。与 _mount_basis 同一套编码。
+## 跨端安全：只传一个 float，接收端用 anchor_pos 的 up 解码即还原同一方向。
+func _body_anchor_yaw() -> float:
+	var up := Planet.up_at(global_position)
+	if _body == null:
+		var fallback := Planet.yaw_of(up, -global_transform.basis.z)
+		return 0.0 if is_nan(fallback) else fallback
+	# 3d_godot_robot：模型正面 = 局部 +Z
+	var face: Vector3 = _body.global_transform.basis.z
+	var y := Planet.yaw_of(up, face)
+	return 0.0 if is_nan(y) else y
+
+
+## M27 条款 V2：客户端 X 召唤请求——服务器在权威节点上代执行 _summon_mount。
+## sender 必须是该玩家节点的 multiplayer authority（防伪造/防串号）。
+## M28：req_pos/req_yaw = 请求端按 X 瞬间的实时位置/朝向（召唤锚点）。
+@rpc("any_peer", "call_local", "reliable")
+func request_summon_mount(req_pos: Vector3 = Vector3(), req_yaw: float = INF) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if sender == 0:
+		sender = get_multiplayer_authority()
+	if sender != get_multiplayer_authority():
+		return
+	if mounted_vehicle != null:
+		return
+	_summon_mount(true, sender, req_pos, req_yaw)
+
+
+## M30：客户端 V 召唤飞车请求——与沙发召唤同构（服务器权威代召唤 + 锚点）
+@rpc("any_peer", "call_local", "reliable")
+func request_summon_car(req_pos: Vector3 = Vector3(), req_yaw: float = INF) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if sender == 0:
+		sender = get_multiplayer_authority()
+	if sender != get_multiplayer_authority():
+		return
+	if mounted_vehicle != null:
+		return
+	_summon_mount(true, sender, req_pos, req_yaw, "car")
+
+
+## M25：收回专属沙发（下座后调用；服务器空车才真正回收）。
+## M25f 条款 M8：只收自己名下的车——骑乘物不是 couch_<peer_id>/car_<peer_id> 时
+## （误登 bot 沙发等）仅下座不收回，车是 bot 的，收回会坑死自动驾驶。
+## M30：car_<id>（街机飞车）同名下车同样可收。
+func _recall_mount() -> void:
+	if mounted_vehicle == null or not is_instance_valid(mounted_vehicle):
+		return
+	var my_id := multiplayer.get_unique_id()
+	if str(mounted_vehicle.name) != "couch_%d" % my_id \
+			and str(mounted_vehicle.name) != "car_%d" % my_id:
+		return
+	if mounted_vehicle.has_method("server_recall"):
+		mounted_vehicle.request_recall.rpc_id(1)
+
+
+## M25：bot 专用——召唤沙发并自动上座（bot 逻辑只在服务器跑，本地直调不走 rpc；
+## request_mount 的 rpc sender 会把直调误判成玩家 1，所以走 server_mount_peer）
+func bot_summon_and_mount() -> void:
+	if not multiplayer.is_server() or mounted_vehicle != null:
+		return
+	var vehicles := get_node_or_null("../../Environment/Vehicles")
+	if vehicles == null:
+		return
+	var my_id := get_multiplayer_authority()
+	# 【M47 事故修复】必须先确认自己真的是 bot。
+	# 事故链：get_multiplayer_authority() 一旦返回 1（bot 节点 authority 被服务器
+	# 兜底成 1，或 bot 判定走了别的分支），my_id 就变成玩家：
+	#   → get_node_or_null("couch_1") 命中**玩家自己的沙发**
+	#   → 下面的复用路径把它 global_transform 拉到 bot 脚下
+	#   → server_mount_peer(1)
+	# 玩家此刻正坐在 couch_1 上，座位跟随每帧写 global_position = 座位世界坐标，
+	# 于是被一辆飞到 160m 外的车"锁着"一路平移 —— 用户原话
+	# "角色直接像被风吹着走"；探针实测 velocity=0，位置每帧却位移 0.85m（≈51 m/s）。
+	if not PeerQuery.is_bot_peer(my_id):
+		return
+	var couch := vehicles.get_node_or_null("couch_%d" % my_id)
+	if couch == null:
+		var scene := load("res://scenes/vehicles/hover_couch.tscn") as PackedScene
+		if scene == null:
+			return
+		couch = scene.instantiate()
+		couch.name = "couch_%d" % my_id
+		# M28：先定位后入树（spawn 快照必须带正确位置，否则客户端看到的
+		# bot 沙发 spawn 在原点）。
+		# M47：位置必须沿**当地法线**抬高，朝向必须用对齐法线的 basis——
+		# 原来 `global_position + Vector3(0,0.6,0)` + `rotation.y` 在球面上
+		# 等于把 bot 的沙发立起来插进地里（实测夹角 98°，还离 bot 164m）。
+		var bup := Planet.up_at(global_position)
+		var bpos: Vector3 = global_position + bup * 0.6
+		couch.transform = Transform3D(_mount_basis(bup, _body_anchor_yaw()),
+			vehicles.to_local(bpos))
+		vehicles.add_child(couch, true)
+	# 复用路径也要重新对齐（bot 可能已经走了很远）
+	var bup2 := Planet.up_at(global_position)
+	couch.global_transform = Transform3D(_mount_basis(bup2, _body_anchor_yaw()),
+		global_position + bup2 * 0.6)
+	# M25f 条款 M6：bot 沙发打专属标记——拒绝玩家上座（自动驾驶劫持事故）
+	if couch.has_method("mark_bot_vehicle"):
+		couch.mark_bot_vehicle()
+	couch.server_mount_peer(my_id)
 
 ## M18b-6：roguelite 头顶血条（玩家挂载点，青色）
 @onready var _head_health_bar: RogueHealthBar = $HealthBar
@@ -214,6 +447,15 @@ var is_blocking := false # 格挡姿态（客户端本地表现 + 服务器权�
 var _last_sent_blocking := false # 上报去重
 var _shake_camera: Node = null # 本地玩家相机震屏（_ready 动态挂载）
 
+## M36：气球夺剑——手持石块状态（客户端表现副本 has_stone 由服务器回执驱动，
+## 服务器权威副本 _server_has_stone 防伪造；投掷冷却双端各一份）
+const STONE_THROW_SPEED := 17.0
+const STONE_THROW_COOLDOWN_MSEC := 600
+var has_stone := false
+var _server_has_stone := false
+var _stone_throw_cooldown_msec := 0
+var _stone_throw_local_cd_msec := 0
+
 # 金币（M2 怪物掉落奖励，M3 商人消费）
 var gold := 0
 signal gold_changed(total: int)
@@ -225,7 +467,18 @@ signal level_changed(new_level: int)
 signal experience_changed(current: int, needed: int)
 
 ## M5：职业（服务器权威，客户端经 sync_class 同步；空字符串 = 尚未选择）
-var player_class := ""
+## M27 条款 V3：player_class setter 驱动身体视觉切换——同步器（BotSyncConfig 的
+## 900x:player_class）/ _add_player 初始化 / sync_class.rpc 都只写这个属性，
+## 模型切换逻辑必须挂在这里，否则客户端 bot 永远是 GodotRobot
+## （事故 C：双端模型双裂——服务器电视头、客户端机器人）。
+## is_node_ready() 守卫：_ready 前（_body 未就绪）赋值时跳过，_ready 里显式补调。
+var player_class := "":
+	set(value):
+		if player_class == value:
+			return
+		player_class = value
+		if is_node_ready():
+			_update_body_visual()
 signal class_changed(class_id: String)
 
 @onready var attribute_set: AttributeSet = $AttributeSet
@@ -273,6 +526,15 @@ func _ready():
 			call_deferred("_sync_inventory_to_owner")
 
 	set_player_skin(skin_color)
+	# M40：CC0Tree 短剑无内嵌材质（FBX 贴出来纯白），运行时补一份金属材质
+	var _m40_sword := get_node_or_null("GodotRobot3D/RobotArmature/Skeleton3D/LeftHandAttach/SwordShort")
+	if _m40_sword != null:
+		for mi in _m40_sword.find_children("*", "MeshInstance3D", true, false):
+			var sm := StandardMaterial3D.new()
+			sm.albedo_color = Color(0.75, 0.78, 0.85)
+			sm.metallic = 0.9
+			sm.roughness = 0.25
+			(mi as MeshInstance3D).set_surface_override_material(0, sm)
 	# M18b-3：动画完成信号统一走 Body 路由（GodotRobot / KayKit 步兵两套视觉都转发到此）
 	_body.body_animation_finished.connect(_on_animation_finished)
 	_body.play_animation_state(&"Idle")
@@ -296,6 +558,10 @@ func _ready():
 
 	_update_body_visual() # M18b-3：按职业挂身体视觉（默认战士=机器人）
 	_enter_combat_ready()
+	# M19 修订（用户 2026-10-18 要求）：开局即发放漂浮伙伴，不再锁任务。
+	# 任务完成钩子（sync_quest_state 尾部）保留作双保险；各端自发生成自己的。
+	if is_multiplayer_authority():
+		call_deferred("_ensure_companion")
 
 
 ## M18b-3：身体视觉切换——步兵用 KayKit 人形，其余职业用 GodotRobot。
@@ -342,8 +608,14 @@ func _align_pickup_area_with_camera() -> void:
 
 
 func _physics_process(delta):
+	# M45：球面化——每帧先把角色钉在星球表面、把根节点 basis 对齐当地法线。
+	# 必须在 move_and_slide 之前：移动方向由 transform.basis 的局部 XZ 决定，
+	# basis 已对齐切平面时，既有"本地 XZ 移动"代码自动变成"沿球面行走"。
+	_planet_frame_step(delta)
 	if not multiplayer.has_multiplayer_peer() or not is_multiplayer_authority():
 		return
+	# 【M48】把自己身体的朝向喂给别的端——见 _net_tick_body_yaw 的注释
+	_net_tick_body_yaw()
 
 	# M19：乘坐载具时本体位置由自己按座位跟随（沙发位置由 Synchronizer 同步），
 	# 禁用自身移动/重力/攻击，保持 Idle 姿态
@@ -355,21 +627,57 @@ func _physics_process(delta):
 		var ground_check: float = _terrain_probe.terrain.data.get_height(global_position)
 		if global_position.y < ground_check - 3.0:
 			global_position.y = ground_check + 0.5
-			velocity.y = 0.0
+			_planet_zero_vertical()
+
+	# 【M47 事故】骑乘不变量看门狗 —— 这一条挡住"人没上车却被当成在车上"的所有路径。
+	#
+	# 用户症状："角色直接像被风吹着走"。探针实测：velocity=0.00，位置却每帧
+	# 位移 0.7~1.0m（≈51 m/s）匀速平移 —— 因为骑乘分支把 global_position
+	# 直接写死成"座位世界坐标"，而车在飞。
+	#
+	# 所以骑乘状态必须每帧校验不变量：**这辆车的座位表里真有本地 peer**。
+	# 只要不成立（车被 bot 抢走 / 座位被摘 / sync_seats 错播），立刻下座，
+	# 让角色回到正常的地面移动逻辑，而不是继续被拖着飞。
+	if mounted_vehicle != null and not _mounted_still_valid():
+		printerr("MOUNT-WATCHDOG: %s 座位表已无本地 peer %d，强制下座（防被载具拖走）" % [
+			name, multiplayer.get_unique_id()])
+		set_mounted(null)
 
 	if mounted_vehicle != null:
 		velocity = Vector3.ZERO
-		global_position = mounted_vehicle.global_position \
-				+ mounted_vehicle.get_seat_offset(mounted_seat)
-		# 角色朝向 = 飞行器前方（视觉 body 朝向；节点 rotation 由右键信号驱动）
+		# M33：NaN 闸——载具位置非有限时不跟随（否则玩家位置被污染，
+		# 相机/朝向/normalized 全线刷屏且不可自愈）
+		# 【M47】座位偏移是车体局部坐标，必须过车的基。
+		# 旧写法直接加到 global_position 上：球面上车的 basis 不是单位阵，
+		# 偏移会算错方向 —— 玩家被塞进车体内部（画面里"角色不见了"）。
+		var _seat_pos: Vector3 = mounted_vehicle.global_transform \
+				* mounted_vehicle.get_seat_offset(mounted_seat)
+		if is_finite(_seat_pos.x) and is_finite(_seat_pos.y) and is_finite(_seat_pos.z):
+			global_position = _seat_pos
+		# 【M55 硬不变量 I-MOUNT】骑乘期间：**角色朝向 ≡ 载具朝向**。
+		# 用户明确要求"角色和飞行器的朝向要保持一致"，这不是"最好一致"而是必须一致。
+		# 实现方式：每帧把身体正面硬对齐到载具前方（-载具.basis.z），不用 lerp。
+		#   · 上座瞬间不会跳：载具就是按 _body_anchor_yaw()（= 身体正面）造出来的，
+		#     两者本来就 0°，snap 是幂等操作（M42 的"上座被拧"根因是载具朝向算错，
+		#     已在本轮 M55 修掉，不再是"snap 有问题"）。
+		#   · 转向由载具驱动：载具按移动方向转，身体即时跟上，视觉上"车带着人转"。
+		#   · 禁止反向驱动（身体带动载具）：那会让相机方向通过身体形成旋转正反馈。
 		if _body != null:
-			_body.apply_rotation(-mounted_vehicle.global_transform.basis.z)
+			var _vfwd: Vector3 = -mounted_vehicle.global_transform.basis.z
+			if is_finite(_vfwd.x) and is_finite(_vfwd.y) and is_finite(_vfwd.z):
+				_body.snap_rotation_to(_vfwd)
+		_mounted_last_vehicle_pos = mounted_vehicle.global_position
+		# M29：骑乘恒坐姿（Sit，循环）；原按载具速度播 Idle/Sprint。
+		# M29b：Sit 被打断（受击等）后自动恢复——去重会吞掉无 restart 的请求，
+		# 只要当前动画不是 Sit 就强制重播，否则角色会停在受击/攻击末帧
+		# （实测"有时在坐骑上跑动/怪姿势"）。
+		var _sit_broken: bool = _body == null or _body.current_state() != &"Sit"
+		_request_animation(&"Sit", _sit_broken)
 		return
 
 	# 死亡后冻结一切输入（表现层播 Fall 动画），直到释放灵魂回村复活
 	if not attribute_set.is_alive():
-		velocity.x = 0
-		velocity.z = 0
+		_planet_zero_horizontal()
 		_apply_gravity(delta)
 		move_and_slide()
 		return
@@ -384,17 +692,25 @@ func _physics_process(delta):
 		elif current_scene.has_method("is_inventory_visible") and current_scene.is_inventory_visible():
 			should_freeze = true
 
+	# M39：UI 打开（背包/商店/任务/地图/聊天）→ 停止自动前进。
+	# 否则玩家在菜单里角色还在跑（WoW 里开界面也会停）。
+	if should_freeze:
+		AutoRun.stop()
+
 	# ===== M18b-2：步兵冲刺（dash_cancel——打断攻击/拾取，0.18s 高速位移）=====
 	var now_msec := Time.get_ticks_msec()
 	if Input.is_action_just_pressed("dash") and player_class == INFANTRY_CLASS_ID \
-			and is_on_floor() and now_msec >= _next_dash_msec \
+			and _grounded and now_msec >= _next_dash_msec \
 			and not should_freeze and attribute_set.is_alive():
 		_next_dash_msec = now_msec + DASH_COOLDOWN_MSEC
 		_dash_until_msec = now_msec + DASH_DURATION_MSEC
 		# 冲刺方向 = 当前移动输入方向；无输入时沿面朝方向突进
 		var dash_input := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
 		var dash_dir := transform.basis * Vector3(dash_input.x, 0, dash_input.y)
-		dash_dir = dash_dir.rotated(Vector3.UP, _spring_arm_offset.rotation.y)
+		dash_dir = dash_dir.rotated(_up, _spring_arm_offset.rotation.y)
+		# M37：NaN 闸先于 length() 比较（NaN 比较恒 false 会漏网）
+		if not (is_finite(dash_dir.x) and is_finite(dash_dir.y) and is_finite(dash_dir.z)):
+			dash_dir = -_body.global_transform.basis.z
 		_dash_direction = dash_dir.normalized() if dash_dir.length() > 0.1 \
 				else -_body.global_transform.basis.z
 		is_attacking = false # dash_cancel：挥砍被闪避打断
@@ -405,8 +721,11 @@ func _physics_process(delta):
 		SfxManager.spawn_effect("res://scenes/vfx/swing_dust.tscn", global_position)
 
 	# ===== M18b-2：盾墙格挡（按住右键；变化才上报，服务器记权威副本）=====
+	# M39：鼠标左右键同时按住 = 鼠标前进（WoW 语义）时，右键不能算格挡——
+	# 否则移速被 BLOCK_SPEED_FACTOR 砍半 + 播 Block 动画，与"前进"语义冲突。
 	var want_block := Input.is_action_pressed("block") and player_class == INFANTRY_CLASS_ID \
-			and is_on_floor() and not is_attacking and not should_freeze and attribute_set.is_alive()
+			and _grounded and not is_attacking and not should_freeze and attribute_set.is_alive() \
+			and not _both_mouse_held()
 	if want_block != _last_sent_blocking:
 		_last_sent_blocking = want_block
 		is_blocking = want_block # 本地立即生效（移速表现零延迟）
@@ -421,8 +740,7 @@ func _physics_process(delta):
 	var dashing := now_msec < _dash_until_msec
 
 	if is_attacking or is_collecting:
-		velocity.x = 0
-		velocity.z = 0
+		_planet_zero_horizontal()
 		_apply_gravity(delta)
 		move_and_slide()
 		return
@@ -434,7 +752,7 @@ func _physics_process(delta):
 		_request_animation(_body.get_movement_animation(velocity))
 		return
 
-	if Input.is_action_just_pressed("pickup") and is_on_floor() and _has_collectible_item_in_front():
+	if Input.is_action_just_pressed("pickup") and _grounded and _has_collectible_item_in_front():
 		is_collecting = true
 		_request_animation(&"Pickup", true)
 		# M14 修复：E 键必须真正发起拾取请求。M8→M9 重构中 pickup() 调用丢失，
@@ -446,12 +764,27 @@ func _physics_process(delta):
 		)
 		return
 
+	# M36：E 键捡石块——附近 3m 有已长出的石堆且手上没石头（与掉落物拾取互斥，顺序无冲突）
+	if Input.is_action_just_pressed("pickup") and _grounded and not has_stone:
+		var pile_idx := _near_stone_pile_index()
+		if pile_idx >= 0:
+			is_collecting = true
+			_request_animation(&"Pickup", true)
+			pick_stone(pile_idx)
+			return
+
 	# 有目标时由 _unhandled_input 的战斗逻辑接管攻击；无目标时空挥一刀（纯动画）
-	if Input.is_action_just_pressed("attack") and is_on_floor() and current_target_path.is_empty():
+	# M36：手持石块时左键改为投掷石块打气球（有目标/无目标两条路径都走投掷）
+	# M39：鼠标双键按住（鼠标前进）时左键不空挥。
+	if Input.is_action_just_pressed("attack") and _grounded and current_target_path.is_empty() \
+			and not _both_mouse_held():
+		if has_stone:
+			throw_stone()
+			return
 		_start_attack()
 		return
 
-	if is_on_floor():
+	if _grounded:
 		# M15：落地粒子——从空中回到地面的一瞬（was_airborne 标志由空中分支设置）
 		if _was_airborne:
 			_was_airborne = false
@@ -460,30 +793,21 @@ func _physics_process(delta):
 		has_double_jumped = false
 
 		if Input.is_action_just_pressed("jump"):
-			velocity.y = JUMP_VELOCITY
-			can_double_jump = true
-			_was_airborne = true
-			_request_animation(&"Jump", true)
-			SfxManager.play(&"jump")
-			SfxManager.spawn_effect("res://scenes/vfx/jump_particles.tscn", global_position)
+			try_jump()
 	else:
 		_was_airborne = true
 		_apply_gravity(delta)
 
 		if can_double_jump and not has_double_jumped and Input.is_action_just_pressed("jump"):
-			velocity.y = JUMP_VELOCITY
-			has_double_jumped = true
-			can_double_jump = false
-			_was_airborne = true
-			_request_animation(&"Jump2", true)
-			SfxManager.play(&"jump")
-			SfxManager.spawn_effect("res://scenes/vfx/jump_particles.tscn", global_position)
+			try_double_jump()
 
 	_move()
 	# M18b-2：冲刺速度覆盖（优先级高于普通/疾跑移速）
+	# 【M47】必须按当地切平面写，不能写世界 x/z —— 球面上速度的世界 X 分量
+	# 是"径向"，写它等于把角色往地里/天上推。
 	if dashing:
-		velocity.x = _dash_direction.x * DASH_SPEED
-		velocity.z = _dash_direction.z * DASH_SPEED
+		var vr_d: float = velocity.dot(_up)
+		velocity = _dash_direction * DASH_SPEED + _up * vr_d
 	var collided = move_and_slide()
 	if collided:
 		_push_collided_items()
@@ -491,6 +815,80 @@ func _physics_process(delta):
 	_request_animation(_body.get_movement_animation(velocity))
 	_update_combat(delta)
 	_update_footsteps(delta)
+
+
+## M48：把本地角色的**身体朝向**同步给其他端（15Hz，不可靠通道）。
+##
+## 【事故】_physics_process 对非 authority 在开头直接 return，远端玩家的
+## _body.rotation.y 从来没有被任何代码写过 —— 而位置（Synchronizer）和
+## Run/Sprint 动画（sync_animation_state）都是同步的。结果：在别人屏幕上，
+## 一个"跑着跑步动画、朝向却永远定在出生角度"的角色贴在真正的自己旁边
+## —— 用户原话"人走路是重影的，方向也不对"。
+##
+## 只同步 body 的**局部标量 yaw**：
+##   · 不是根 rotation.y —— 根是相机朝向，只有本地玩家有意义，且每帧被相机覆盖
+##   · 不是世界四元数 —— body 的父节点 basis 已经是当地坐标系（Planet.align_basis），
+##     局部 yaw 在球面上天然正确，还省两个 float 和万向锁风险
+const BODY_YAW_NET_INTERVAL := 3 # 30Hz 物理 / 3 ≈ 10Hz，足够看清走路朝向
+
+var _yaw_net_tick: int = 0
+
+
+func _net_tick_body_yaw() -> void:
+	if _body == null:
+		return
+	_yaw_net_tick += 1
+	if _yaw_net_tick % BODY_YAW_NET_INTERVAL != 0:
+		return
+	if multiplayer.get_peers().is_empty():
+		return # 单机：没有远端要喂
+	var yaw := _body.rotation.y
+	if not is_finite(yaw):
+		return
+	_net_body_yaw.rpc(yaw)
+
+
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func _net_body_yaw(yaw: float) -> void:
+	# 只收"该角色的权威方"发来的朝向：真人 = 他自己，bot = 服务器（id 1）
+	var sender := multiplayer.get_remote_sender_id()
+	if not (sender == get_multiplayer_authority() or sender == 1):
+		return
+	if is_multiplayer_authority():
+		return # 自己的朝向自己算，绝不收网络值
+	if not is_finite(yaw):
+		return
+	if _body != null:
+		_body.rotation.y = yaw
+
+
+## M24：通用跳跃接口——玩家输入与 bot AI 共用（AI 接管玩家的能力基座之一）。
+## 在地面时起跳：物理速度 + 跳跃动画（经 _server_publish_animation 广播各端）
+## + 音效/粒子。空中时返回 false。
+func try_jump() -> bool:
+	if not _grounded:
+		return false
+	_planet_jump(JUMP_VELOCITY)
+	can_double_jump = true
+	_was_airborne = true
+	_request_animation(&"Jump", true)
+	SfxManager.play(&"jump")
+	SfxManager.spawn_effect("res://scenes/vfx/jump_particles.tscn", global_position)
+	return true
+
+
+## M24：通用二段跳接口（bot AI 与玩家输入共用）。空中且未用过二段跳时触发。
+func try_double_jump() -> bool:
+	if _grounded or not can_double_jump or has_double_jumped:
+		return false
+	_planet_jump(JUMP_VELOCITY)
+	has_double_jumped = true
+	can_double_jump = false
+	_was_airborne = true
+	_request_animation(&"Jump2", true)
+	SfxManager.play(&"jump")
+	SfxManager.spawn_effect("res://scenes/vfx/jump_particles.tscn", global_position)
+	return true
 
 
 ## M13：脚步声——本地玩家按真实速度判定（2D 音），远程玩家由动画广播
@@ -503,7 +901,7 @@ func _update_footsteps(delta: float) -> void:
 		return
 	var moving := false
 	if is_multiplayer_authority():
-		moving = is_on_floor() \
+		moving = _grounded \
 			and Vector2(velocity.x, velocity.z).length() > FOOTSTEP_MIN_SPEED
 	else:
 		moving = _remote_moving
@@ -520,11 +918,208 @@ func _update_footsteps(delta: float) -> void:
 		SfxManager.play_3d_random(SfxManager.FOOTSTEP_KEYS, global_position, REMOTE_FOOTSTEP_UNIT_SIZE)
 
 
-func _apply_gravity(delta: float) -> void:
-	if is_on_floor():
+# ===== M45：球面化（星球重力 + 局部切平面坐标系）=====
+## 背景：地图从平面改成球体后，"上"不再等于世界 +Y。
+## 这里用「解析吸附 + 每帧把根节点 basis 对齐当地法线」实现球面行走：
+##   · basis 的 Y 轴 = 当地法线 → 既有的「局部 XZ 移动 / 局部 Y 跳跃」代码全部无需改动
+##   · 重力沿 -法线 → 走到球的另一面也有"下"
+##   · 没有物理地面碰撞体（球面高度场太大），贴地靠径向吸附，接地状态靠 _grounded
+
+var _up := Vector3.UP
+var _fwd := Vector3.FORWARD
+var _grounded := false
+var _planet_ready := false
+## 当前星球有没有海洋（外域没有 → 掉进虚空要兜底传送）
+var _planet_has_ocean := true
+## 无输入时的刹车速率（倍于当前移速）。1.0 = 一帧内停住
+const _FRICTION_RATE := 1.6
+
+## 球面对齐的写入阈值（弧度）。小于它就不写 transform。
+## 取 0.5°：肉眼不可分辨，但足够把"每帧写一次"压成"每几秒写一次"，
+## 让物理体的 floor 状态不再被自己的写操作打乱。
+const ALIGN_WRITE_MIN_ANGLE := 0.0087 # ≈ 0.5°
+var _aligned := Basis() # 上一次真正写进 transform 的 basis（零值表示还没写过）
+
+## project.godot: 3d_physics/layer_3 = "actor"（玩家/bot/怪物）。第 1 层 = decor，
+## 第 2 层 = world。地面射线要覆盖 1+2，只排除 3。
+const ACTOR_LAYER := 1 << 2
+
+## 接地吸附带（米）：脚底与地面的径向间隙小于它就判定为"站着"。
+## 由 floor_snap_length 推导，不写死 —— 引擎本来就会在 snap 带内把角色吸住，
+## 带内的一半以内必然是真实贴地（实测站立时 gap 在 0.038~0.083m 之间波动）。
+var _ground_gap_band := 0.2
+
+
+func _planet_init_once() -> void:
+	if _planet_ready:
 		return
-	var gravity_multiplier = FALL_GRAVITY_MULTIPLIER if velocity.y < 0 else 1.0
-	velocity.y -= gravity * gravity_multiplier * delta
+	_planet_ready = true
+	_up = Planet.up_at(global_position)
+	var b := global_transform.basis
+	_fwd = b * Vector3.FORWARD
+	_fwd = _fwd - _up * _fwd.dot(_up)
+	if _fwd.length_squared() < 0.000001:
+		_fwd = Vector3.FORWARD
+	_fwd = _fwd.normalized()
+	up_direction = _up
+	# 接地带宽 = 引擎吸附带的一半（吸附带内引擎负责把角色拉住，一半以内必然贴地）
+	_ground_gap_band = maxf(0.05, floor_snap_length * 0.5)
+	# M46：缓存"这颗星球有没有海"。外域没有海，边缘断崖下面是虚空，
+	# 掉下去没有水托着会无限下坠，必须兜回地表。
+	_planet_has_ocean = Planet.has_ocean()
+
+
+## 每帧球面校正：平行传输基向量 → 径向吸附 → 对齐 basis（move_and_slide 之前调用）
+func _planet_frame_step(_delta: float) -> void:
+	_planet_init_once()
+	var p := global_position
+	if not (is_finite(p.x) and is_finite(p.y) and is_finite(p.z)):
+		return
+	var up := Planet.up_at(p)
+	# 平行传输：把上一帧前方向投影到新切平面，沿球面行走时朝向连续不漂
+	var f := _fwd - up * _fwd.dot(up)
+	if f.length_squared() < 0.000001:
+		var ref := Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT
+		f = ref - up * ref.dot(up)
+	_fwd = f.normalized()
+	_up = up
+	up_direction = up
+
+	# 径向吸附（双向）。
+	# 【M47】旧实现只"抬"不"压"：角色落到地表上方 0~0.28m 的带宽里就停下，
+	# 重力又被 _grounded 关掉，于是永远悬空 0.3 米 —— 视觉上就是"脚没踩住、
+	# 重力不对"。现在只要在地表上方 35cm 内且没有向上速度，就精确压到地面。
+	#
+	# 【M47 再修】地面高度改由 _ground_radius_at() 决定：它先问物理世界
+	# "脚下到底踩着什么"，没有碰撞面才退回地形网格。旧代码只认地形网格，
+	# 站在广场地台上时会被人为压到地形高度、再被地台碰撞推回来，两股力
+	# 每帧打架，水平位移被吃光 —— 用户看到的就是"按 W 原地踏步"。
+	var ground_r: float = _ground_radius_at(p, up)
+	var r: float = p.length()
+	var gap: float = r - ground_r
+
+	# 【M47 架构】站立判定交还给物理引擎。
+	#
+	# 之前地形 Face 没有碰撞体，is_on_floor() 恒为 false，所以只能"猜"地面：
+	# 用 height_at() 算一个高度、和渲染网格对不上、再手动压低位置 —— 这就是
+	# 用户说的"测量 + 加一点减一点凑合"。现在 Face 挂了 trimesh 碰撞（碰撞体
+	# 就是渲染网格本身），move_and_slide() 会给出真实的 floor 结果。
+	#
+	# 【M53】gap 判据从写死的 0.08 改成"引擎吸附带的一半"：
+	# 角色被 floor_snap 吸在地面上时，脚底与地面天然留出 ≤ snap 长度的缝
+	# （实测 0.038~0.083m），写死 0.08 就正好卡在抖动范围里，每 2 帧翻一次。
+	# 现在这个带宽由 floor_snap_length 推导，换角色/换胶囊不会失效。
+	_grounded = is_on_floor() or gap < _ground_gap_band
+
+	# 穿模安全网：只在穿透超过 0.8m（物理碰撞本该拦住的事故）时强制抬回。
+	if gap < -0.8:
+		global_position = p + up * (-gap)
+		var vr: float = velocity.dot(up)
+		if vr < 0.0:
+			velocity -= up * vr
+
+	# M46：外域掉进虚空 → 拉回起始大陆地表（面 0 的出生点附近）
+	if not _planet_has_ocean and r < Planet.RADIUS + Planet.SEA_LEVEL - 6.0:
+		var home: Vector3 = Planet.plane_to_surface(0.0, -130.0)
+		global_position = home + Planet.up_at(home) * 2.0
+		velocity = Vector3.ZERO
+		_planet_zero_vertical()
+		return
+
+	# 根节点 basis 对齐球面：只有 authority 改，避免与同步写入互相打架。
+	#
+	# 【M53 事故修复】这里原来**每帧无条件**写 global_transform。
+	# 实测后果：走路时物理服务器把角色当成"瞬移"，is_on_floor() 在相邻物理帧
+	# 之间 true/false 反复翻转（120 帧翻 58 次，静止 40 帧翻 0 次）。
+	# 连锁反应：
+	#   _grounded 抖 → _apply_gravity 间歇生效（人一顿一顿）
+	#   _was_airborne 每帧被置位 → 每帧生成一个落地粒子 → 身后拖出橙色烟雾带
+	#   User: "角色移动仍旧不对，有重影"。
+	# 修法：朝向变化小于视觉可辨角度时合并写入，物理体不再被无意义地重设。
+	if is_multiplayer_authority():
+		var target := Planet.align_basis(up, _fwd)
+		if _aligned.x.length_squared() < 0.5 \
+				or _aligned.y.angle_to(target.y) > ALIGN_WRITE_MIN_ANGLE \
+				or _aligned.z.angle_to(target.z) > ALIGN_WRITE_MIN_ANGLE:
+			var t2 := global_transform
+			t2.basis = target
+			global_transform = t2
+			_aligned = target
+
+
+func _planet_jump(v: float) -> void:
+	var vr: float = velocity.dot(_up)
+	velocity += _up * (v - vr)
+
+
+## 【M47 根治】自适应地面半径 —— 不再"猜"地面在哪，而是问物理世界。
+##
+## 用户批评：「你不应该测量，而是设定计算，自动适应」。旧的 `mesh_height()`
+## 只知道**地形网格**，不知道广场地台 / 台阶 / 建筑地板 / 载具甲板。站在广场上
+## 时人被告知"地面在地形高度"，于是每帧被往下吸、又被地台碰撞推回来 ——
+## 水平位移被碰撞吃光，表现就是"按 W 原地踏步"。
+##
+## 现在只保留一条规则：**脚下有什么碰撞面，就以什么面为准**；一个都打不到，
+## 才退回地形网格。从此新增任何可站立物都不需要再改这里的代码。
+func _ground_radius_at(p: Vector3, up: Vector3) -> float:
+	var base: float = Planet.RADIUS + Planet.mesh_height(up)
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return base
+	# 起点取玩家头顶上方 1m、终点脚下 3m：
+	#   · 站在地台上 → 打得到地台，用地台面
+	#   · 站在野外   → 地形无碰撞，打空，用 mesh_height
+	#   · 站在平台下方 → 起点仍在平台下方，不会误吸上去
+	var from: Vector3 = p + up * 1.0
+	var to: Vector3 = p - up * 3.0
+	if not (is_finite(from.x) and is_finite(from.y) and is_finite(from.z)):
+		return base
+	if not (is_finite(to.x) and is_finite(to.y) and is_finite(to.z)):
+		return base
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	# 【M53 事故修复】这里原来写死 collision_mask = 2（layer "world"）。
+	# 但广场地板 KaykitArena/Floormap 是 GridMap，碰撞落在 layer 1（"world_decor"），
+	# 于是射线**永远看不见脚下真正踩的那块板**，只能返回地形网格高度：
+	#   gap 恒为 0.316m → gap < 0.08 恒不成立 → _grounded 100% 依赖 is_on_floor()，
+	#   而 is_on_floor() 在 floor_snap 边缘来回翻（实测 120 帧翻 58 次）→
+	#   每帧生成一个落地粒子 → 身后拖出橙色烟雾带（用户说的"重影"）。
+	# 现在直接用角色自己的碰撞掩码（"我能站在什么上面"就是它），只摘掉 actor 层
+	# 免得探到别的玩家/bot —— 判据唯一，不再有第二套层集合。
+	q.collision_mask = collision_mask & ~ACTOR_LAYER
+	q.collide_with_areas = false
+	q.hit_from_inside = false
+	q.exclude = [get_rid()]
+	var hit: Dictionary = space.intersect_ray(q)
+	if hit.is_empty():
+		return base
+	var hp: Vector3 = hit["position"]
+	if not (is_finite(hp.x) and is_finite(hp.y) and is_finite(hp.z)):
+		return base
+	return maxf(base, hp.length())
+
+
+## 清掉切平面内的水平速度，**保留**沿当地法线的垂直分量（死亡/攻击/冻结用：
+## 人要停住，但该往下掉还得往下掉）。
+func _planet_zero_horizontal() -> void:
+	velocity = _up * velocity.dot(_up)
+
+
+## 清掉沿当地法线的垂直分量，**保留**切平面内水平速度（沉地拉回后吃掉下落速度用）。
+func _planet_zero_vertical() -> void:
+	velocity -= _up * velocity.dot(_up)
+
+
+func _apply_gravity(delta: float) -> void:
+	# 【M53 事故修复】这里原来 `if _grounded: return` —— 站在地上就完全不施重力。
+	# 但球面地面是**碰撞体**，接触状态由 move_and_slide 维护：
+	# 不施重力 → 角色没有向下位移 → 引擎判定"没碰到地板" → is_on_floor() 变假
+	# → 下一帧又施重力 → 又接触 …… 自激振荡（实测走 120 帧翻 58 次）。
+	# 现在重力恒施加，落地的下压由 move_and_slide 与地面碰撞自然抵消，
+	# 接触状态每帧都被真实维护，这就是 CharacterBody3D 的标准用法。
+	# M45：重力沿当地法线反向（球背面的"下"指向球心）
+	var vr: float = velocity.dot(_up)
+	var gravity_multiplier: float = FALL_GRAVITY_MULTIPLIER if vr < 0.0 else 1.0
+	velocity -= _up * gravity * gravity_multiplier * delta
 
 
 ## M9：空手判定——武器栏为空即空手。
@@ -545,16 +1140,16 @@ func _play_attack_animation(base_state: StringName) -> void:
 	# 挥击时在手部高度播一撮尘光。
 	if base_state == &"SwordSlash" and _is_unarmed():
 		_request_animation(&"Strike", true)
-		SfxManager.play(&"swing")
+		_local_sfx(&"swing")
 	elif base_state == &"Kick":
 		_request_animation(base_state, true, ATTACK_ANIM_SPEED)
-		SfxManager.play(&"heavy_punch")
+		_local_sfx(&"heavy_punch")
 	else:
 		_request_animation(base_state, true, ATTACK_ANIM_SPEED)
 		# M18b-6：步兵人形的挥剑声由动画轨道触发 AttackAudio（fire-slash，原版唯一声源），
 		# 代码不再叠加 swing，保持与 roguelite 原版一致
 		if not (_body is Body and _body.use_alt_body):
-			SfxManager.play(&"swing")
+			_local_sfx(&"swing")
 	# 挥击尘光：模型正面（body 局部 +Z，见 4.2 朝向约定）前方约 1 米、胸口高度
 	# （纯表现，各端独立触发）
 	var forward: Vector3 = _body.global_transform.basis.z
@@ -562,11 +1157,10 @@ func _play_attack_animation(base_state: StringName) -> void:
 
 
 func _start_attack() -> void:
-	if is_attacking or is_collecting or not is_on_floor():
+	if is_attacking or is_collecting or not _grounded:
 		return
 	is_attacking = true
-	velocity.x = 0
-	velocity.z = 0
+	_planet_zero_horizontal()
 	# M16d：无目标空挥与 basic_attack 对齐——播 SwordSlash（空手自动映射
 	# Strike 直拳）。此前硬编码 Attack1（转圈旋风斩），导致没对准目标时
 	# 左键全是转圈圈。转圈圈只属于 w_whirlwind/w_execute 技能。
@@ -675,8 +1269,11 @@ func _server_publish_animation(state: StringName, speed: float = 1.0) -> void:
 	if not multiplayer.is_server():
 		return
 	_animation_sequence += 1
-	sync_animation_state.rpc(state, _animation_sequence, speed)
 	sync_animation_state(state, _animation_sequence, speed)
+	# M26：bot（9001+）已通过 BotMultiplayerSpawner 同步到客户端，动画照常广播；
+	# rpc 寻的按发送方节点路径解析，客户端有对应节点即可播放。
+	for pid in multiplayer.get_peers():
+		sync_animation_state.rpc_id(pid, state, _animation_sequence, speed)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -725,6 +1322,11 @@ func _process(_delta):
 		return
 	if not is_multiplayer_authority():
 		return
+	# ===== M39：鼠标左右键同时按住 = 自动前进（WoW 鼠标前进）=====
+	# 按住式：两键同时按下 → 自动前进；任一键松开 → 立即停。
+	# 在 _process 里轮询（而不是 _unhandled_input）——松开事件可能被
+	# spring_arm_offset（右键转视角）先消费掉，用事件跟踪会漏掉松开。
+	AutoRun.set_mouse_hold(_both_mouse_held())
 	var first_person := _spring_arm_offset != null and _spring_arm_offset.is_first_person
 	if first_person:
 		_align_pickup_area_with_camera()
@@ -739,8 +1341,7 @@ func _process(_delta):
 
 
 func _freeze():
-	velocity.x = 0
-	velocity.z = 0
+	_planet_zero_horizontal()
 	_current_speed = 0
 	_request_animation(&"Idle")
 
@@ -749,23 +1350,49 @@ func _move() -> void:
 	var input_direction: Vector2 = Vector2.ZERO
 	if is_multiplayer_authority():
 		input_direction = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+		# ===== M39：自动行走（WoW Auto-Run）=====
+		# 语义 = 持续按住 W（用户要求"和 W 键一样的作用"）。
+		# Vector2(0, -1) 就是 get_vector("move_forward") 的值（y = backward - forward），
+		# 与按住 W 完全同一条代码路径（含相机相对旋转与身体朝向跟随）。
+		# 任意移动键按下会由 _unhandled_input 调 AutoRun.stop() 取消。
+		if _auto_run_active():
+			input_direction = Vector2(0.0, -1.0)
 
+	var up := _up
+	# 根节点 basis 已在 _planet_frame_step 里对齐当地切平面，所以 basis * (x,0,z)
+	# 得到的就是切平面方向。
 	var direction: Vector3 = transform.basis * Vector3(input_direction.x, 0, input_direction.y).normalized()
 
 	_is_running()
 	# M18b-2：盾墙格挡移速减半
 	if is_blocking:
 		_current_speed *= BLOCK_SPEED_FACTOR
-	direction = direction.rotated(Vector3.UP, _spring_arm_offset.rotation.y)
+	# 相机偏航绕**当地法线**（绕世界 Y 在球面上会把方向拧到地下去）
+	direction = direction.rotated(up, _spring_arm_offset.rotation.y)
+	direction -= up * direction.dot(up)
 
-	if direction:
-		velocity.x = direction.x * _current_speed
-		velocity.z = direction.z * _current_speed
+	# 【M47 事故修复 · 必读】速度必须按**当地切平面**拆，不能按世界 XZ。
+	#
+	# 旧代码只写 velocity.x / velocity.z（世界轴），而角色站的面 0 法线是 +X：
+	# 他的"前后左右"落在世界 YZ 平面上，于是**水平速度里那个 Y 分量从头到尾
+	# 没人写过、也没人清过**。一旦沾上一点（上坡打滑、被撞、落地冲击），
+	# 它就永远留着 —— 用户原话"角色一直在像被风吹一样"就是它。
+	# 而且 move_toward 把世界 x 拉向 0，对角色来说是"往上/往下"，
+	# 刹车方向完全是错的。
+	var vr: float = velocity.dot(up)          # 垂直当地地面
+	var vh: Vector3 = velocity - up * vr       # 切平面内
+
+	if direction.length_squared() > 0.0001:
+		velocity = direction.normalized() * _current_speed + up * vr
 		_body.apply_rotation(velocity)
 		return
 
-	velocity.x = move_toward(velocity.x, 0, _current_speed)
-	velocity.z = move_toward(velocity.z, 0, _current_speed)
+	# 无输入：在切平面内刹车（这才是球面世界里的"地面摩擦"）
+	# 地形没有碰撞体 → is_on_floor() 恒 false → 物理引擎不给任何摩擦，
+	# 必须自己收。系数 deliberately 很大：约 3 帧（0.05s）内归零，
+	# 视觉上"松手就停"，但又不是硬切成 0（避免看起来像掉帧）。
+	vh = vh.move_toward(Vector3.ZERO, _current_speed * 20.0 * get_physics_process_delta_time())
+	velocity = vh + up * vr
 
 
 func _is_running() -> bool:
@@ -776,12 +1403,45 @@ func _is_running() -> bool:
 	return false
 
 
+## ===== M39：自动行走 / 自动飞行（WoW Auto-Run）=====
+## 状态由 AutoRun 单例持有（autoload 名 AutoRun）：
+##   · 小键盘 +（toggle_autorun 动作）→ 切换式开关
+##   · 鼠标左右键同时按住          → 按住式（WoW 鼠标前进）
+##   · 任意移动键按下              → AutoRun.stop() 全部取消
+func _auto_run_active() -> bool:
+	return AutoRun.is_active()
+
+
+## 鼠标左右键是否同时按住（WoW 鼠标前进的判定）
+func _both_mouse_held() -> bool:
+	return Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+			and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+
+
+## M39：是否是"移动类按键"按下（WASD / 空格 / C）——用于中断自动前进。
+## 只看"按下"沿（pressed），长按不重复触发。
+func _is_movement_key_pressed(event: InputEvent) -> bool:
+	for action in ["move_forward", "move_backward", "move_left", "move_right", "jump", "crouch"]:
+		if event.is_action_pressed(action):
+			return true
+	return false
+
+
 func _check_out_of_bounds():
-	if global_transform.origin.y < -15.0:
+	# 【M47 事故修复 · 必读】不能用 y < -15 这种平面判据。
+	# 球面上站在 -X / -Y / -Z 面的玩家，世界 y 天然是 -2000 级别，
+	# 旧判据会把整个下半球都判定为"掉出地图"，每帧传送回 _spawn_point=(0,5,0)
+	# ——也就是**球心**。用户 2026-10-22 看到"角色没站在地上、四周像恐怖游戏"
+	# 就是这个：角色其实一直悬在星球中心，相机从球心往外看。
+	# 正确的"掉出去"= 径向距离低于海底/虚空底（球面向内坠落）。
+	if global_position.length() < Planet.RADIUS + Planet.SEA_LEVEL - 20.0:
 		_reset_position_after_fall()
 
 
 func _reset_position_after_fall():
+	# 兜底位置也要按球面算，不能再用平面世界的 _spawn_point 常量
+	var safe := Planet.plane_to_surface(0.0, -130.0)
+	_spawn_point = safe + Planet.up_at(safe) * 2.0
 	global_transform.origin = _spawn_point
 	velocity = Vector3.ZERO
 
@@ -800,6 +1460,9 @@ func _get_texture_from_name(color: SkinColor) -> CompressedTexture2D:
 			return blue_texture
 
 
+## M27 条款 V4：皮肤必须覆盖全部身体视觉，一个都不能漏——
+## 旧版只改 GodotRobot 的 4 个 mesh，步兵（KayKit Mannequin）换模型后
+## 皮肤静默丢失（事故 C："模型对但没颜色"）。
 func set_player_skin(skin_name: SkinColor) -> void:
 	var texture = _get_texture_from_name(skin_name)
 
@@ -807,6 +1470,41 @@ func set_player_skin(skin_name: SkinColor) -> void:
 	_set_mesh_texture(_chest_mesh, texture)
 	_set_mesh_texture(_face_mesh, texture)
 	_set_mesh_texture(_limbs_head_mesh, texture)
+	# M27：KayKit Mannequin（alt_visual）主 SkinnedMesh3D（身体）染色。
+	# 武器挂件（LazerSword/Handle 等 MeshInstance3D）不染——
+	# surface_override 优先级高于 material_override，无差别递归会把剑也换色。
+	_apply_skin_to_alt_visual(texture)
+
+
+## M27 条款 V4：在 alt_visual 子树找主 SkinnedMesh3D（身体）换 albedo 贴图。
+## Mannequin 为 glb 实例，内部网格结构不写死——按类型+角色判定。
+## 注意：alt_visual 是 Body 脚本的 export 引用，子节点真名是 InfantryVisual
+## （player.tscn 写死），直接按名取最稳（export 引用在节点就绪前为 null）。
+func _apply_skin_to_alt_visual(texture: CompressedTexture2D) -> void:
+	if _body == null or texture == null:
+		return
+	var alt_visual := _body.get_node_or_null("InfantryVisual") as Node
+	if alt_visual == null:
+		return
+	var stack: Array[Node] = [alt_visual]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		# 类名判定而非 `is SkinnedMesh3D`——部分构建对该全局类型名解析不稳定
+		# （实测 Parse Error: Could not find type "SkinnedMesh3D"）。
+		if node is GeometryInstance3D and str(node.get_class()) == "SkinnedMesh3D" \
+				and not (node.name in WEAPON_VISUAL_NAMES):
+			var skin_mesh := node as GeometryInstance3D
+			for surface in skin_mesh.get_surface_count():
+				var new_material := StandardMaterial3D.new()
+				new_material.albedo_texture = texture
+				skin_mesh.set_surface_override_material(surface, new_material)
+			return # 主身体只有一个 SkinnedMesh3D，命中即收工
+		for child in node.get_children():
+			stack.append(child)
+
+
+## M27：武器/挂件视觉名——皮肤染色需要跳过（不随职业皮肤变色）
+const WEAPON_VISUAL_NAMES: Array[StringName] = [&"LazerSword", &"Handle", &"SlashVFX"]
 
 
 func _set_mesh_texture(mesh_instance: MeshInstance3D, texture: CompressedTexture2D) -> void:
@@ -992,8 +1690,9 @@ func _sync_inventory_to_owner() -> void:
 	var owner_id = get_multiplayer_authority()
 	if owner_id == 1:
 		sync_inventory_to_owner(player_inventory.to_dict())
-	else:
+	elif multiplayer.get_peers().has(owner_id):
 		sync_inventory_to_owner.rpc_id(owner_id, player_inventory.to_dict())
+	# M20-Bot：虚拟 authority（bot，未连接 peer）背包由服务器本地管理，无需同步
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -1315,11 +2014,24 @@ func _get_collectible_items_in_front() -> Array[ItemRigidBody3D]:
 
 @rpc("any_peer", "call_local", "reliable")
 func apply_force_to_server_object(object_name: String, normal: Vector3) -> void:
+	# M43 安全闸：本 RPC 原先完全裸奔（任何客户端可对 ItemContainer 内任意刚体施 100 倍力）。
+	# 三道闸：① 仅服务器处理且必须来自该玩家的 authority；② 法线必须是有限值；
+	# ③ 只接受"近单位向量"（客户端踢物传的是碰撞法线），并 normalize 后使用，
+	#    防止客户端传 (1e9,1e9,1e9) 把掉落物轰到天外。
+	if not multiplayer.is_server() or not _is_owner_request():
+		return
+	if not (is_finite(normal.x) and is_finite(normal.y) and is_finite(normal.z)):
+		return
+	var len_sq := normal.length_squared()
+	if len_sq < 0.0001 or len_sq > 4.0:
+		return
+	if object_name.is_empty() or object_name.length() > 64:
+		return
 	var object_node = get_node_or_null("/root/Level/Environment/ItemContainer")
 	if object_node:
 		for n in object_node.get_children():
 			if n.name == object_name and n is RigidBody3D:
-				n.apply_force(normal * 100)
+				n.apply_force(normal.normalized() * 100)
 
 
 func _is_grounded_on_server() -> bool:
@@ -1518,8 +2230,14 @@ func add_experience(amount: int) -> void:
 	experience_changed.emit(experience, LevelData.exp_to_next(level))
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_experience(new_level: int, current_exp: int) -> void:
+	# M26：服务器下发型同步。曾用 authority 模式——单人 Host 被
+	# OfflineMultiplayerPeer 本地调用掩盖，双端真连后服务器(1)向
+	# authority=客户端/bot 的节点发 RPC 全被引擎拒绝（客户端刷屏）。
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	var previous_level := level
 	level = new_level
 	experience = current_exp
@@ -1538,8 +2256,12 @@ func add_gold(amount: int) -> void:
 		sync_player_gold.rpc(gold)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_player_gold(total: int) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	gold = total
 	gold_changed.emit(gold)
 
@@ -1597,6 +2319,12 @@ func request_buy_item(item_id: String) -> void:
 		return
 	if not player_inventory or not attribute_set.is_alive():
 		return
+	# M43 安全闸：原先只校验 value>0，客户端可隔着半张地图买任意物品（含未上架的）。
+	# 现在要求 ① 物品在商人货架白名单内 ② 玩家确实站在某个商人 3 米内。
+	if not ItemDatabase.MERCHANT_STOCK.has(item_id):
+		return
+	if not _is_near_any_merchant():
+		return
 	var item := ItemDatabase.get_item(item_id)
 	if item == null or item.value <= 0:
 		return
@@ -1616,6 +2344,9 @@ func request_sell_item(from_slot: int) -> void:
 		return
 	if not player_inventory or not attribute_set.is_alive():
 		return
+	# M43：出售同样要求站在商人旁（否则可在任意地点把背包变现）
+	if not _is_near_any_merchant():
+		return
 	if not player_inventory.is_slot_active(from_slot):
 		return
 	var slot := player_inventory.get_slot(from_slot)
@@ -1628,6 +2359,20 @@ func request_sell_item(from_slot: int) -> void:
 		return
 	add_gold(item.get_sell_price())
 	_sync_inventory_to_owner()
+
+
+## M43：服务端权威的交易距离校验。留 0.5m 余量吸收网络位置插值抖动，
+## 避免"明明站在商人面前却买不了"的误判。
+const MERCHANT_TRADE_RANGE := 3.5
+
+
+func _is_near_any_merchant() -> bool:
+	if not is_inside_tree():
+		return false
+	for m in get_tree().get_nodes_in_group("merchants"):
+		if m is Node3D and global_position.distance_to((m as Node3D).global_position) <= MERCHANT_TRADE_RANGE:
+			return true
+	return false
 
 
 func _on_combat_died() -> void:
@@ -1648,18 +2393,53 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not attribute_set.is_alive():
 		return
+	# M31c：驾驶 tsl 飞车时 Q/E 是翻滚、↑↓ 是俯仰（tsl 原键位）——
+	# 屏蔽骑乘中 Q(选目标)/E(交互) 的原功能，避免翻滚误选目标/误交互
+	if mounted_vehicle != null and mounted_vehicle.is_in_group("tsl_car"):
+		if event.is_action_pressed("target_nearest") or event.is_action_pressed("interact") \
+				or event.is_action_pressed("pickup"):
+			return
 	# M19：G 调试发放漂浮伙伴（任务链接入前的演示途径）
 	if event.is_action_pressed("debug_grant_companion") if InputMap.has_action("debug_grant_companion") else false:
 		_ensure_companion()
 		return
-	# M19：X 召唤/收回专属沙发飞行器（WoW 坐骑键式）
+	# ===== M39：自动行走 / 自动飞行（WoW Auto-Run）=====
+	# 小键盘 + （或主键盘 =）：切换式开关。骑乘时 = 自动飞行，落地时 = 自动行走。
+	if event.is_action_pressed("toggle_autorun"):
+		AutoRun.toggle()
+		get_viewport().set_input_as_handled()
+		return
+	# 任意移动键按下 → 中断自动前进（WoW Auto-Run 原生行为）。
+	# 注意：必须在 toggle_autorun 之后判断，否则 + 键本身会被当成移动键。
+	if _is_movement_key_pressed(event):
+		AutoRun.stop()
+	# M19/M25/M25f：X = 召唤即骑；骑乘中再按 = 对当前骑乘物下座并收回（条款 M8：
+	# 骑的不是自己名下车时只下座不收回——误登 bot 沙发时 X 是唯一自救键）
 	if event.is_action_pressed("mount"):
 		if mounted_vehicle != null:
 			mounted_vehicle.request_dismount.rpc_id(1)
+			_recall_mount()
 		else:
-			_summon_mount()
+			_summon_mount(true)
+		return
+	# M30：V = 召唤/收回街机飞车（与 X 沙发同构；骑乘中按 V 先下再收）
+	if event.is_action_pressed("mount_car"):
+		if mounted_vehicle != null:
+			mounted_vehicle.request_dismount.rpc_id(1)
+			_recall_mount()
+		else:
+			_summon_mount(true, -1, Vector3(), INF, "car")
 		return
 	if event.is_action_pressed("attack"):
+		# M39：鼠标左右键同时按住 = 鼠标前进（WoW 语义）→ 左键不触发攻击/选目标。
+		# 否则按住双键前进会一路上挥砍。
+		if _both_mouse_held():
+			return
+		# M36：手持石块时左键 = 投掷石块（优先级高于选目标/普攻）
+		if has_stone:
+			throw_stone()
+			get_viewport().set_input_as_handled()
+			return
 		var picked := _combat_pick_screen_center()
 		if picked != null:
 			_set_target(picked)
@@ -1861,6 +2641,120 @@ func set_blocking(blocking: bool) -> void:
 	is_blocking = blocking
 
 
+# ===== M36：气球夺剑——捡石块 / 投掷石块（服务器权威，链路同 M5 弹道）=====
+
+func _get_balloon_arena() -> BalloonArena:
+	var level_scene := get_tree().current_scene
+	if level_scene == null:
+		return null
+	return level_scene.get_node_or_null("Environment/BalloonArena") as BalloonArena
+
+
+## 附近可取的石堆下标（3m 内且已长出），无则 -1（各端本地检测，纯表现引导）
+func _near_stone_pile_index() -> int:
+	var arena := _get_balloon_arena()
+	if arena == null:
+		return -1
+	return arena.get_nearest_stone_pile(global_position)
+
+
+## E 键捡石块（客户端入口：单机本地直调，联机 rpc_id(1) 请求）
+func pick_stone(pile_idx: int) -> void:
+	if multiplayer.is_server():
+		request_pick_stone(pile_idx)
+	else:
+		request_pick_stone.rpc_id(1, pile_idx)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func request_pick_stone(pile_idx: int) -> void:
+	if not multiplayer.is_server():
+		return
+	# sender 0 = 服务器本地调用（单机），否则必须是节点 authority（owner）
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 0 and sender_id != get_multiplayer_authority():
+		return
+	if not attribute_set.is_alive() or not _grounded:
+		return
+	if _server_has_stone:
+		return
+	var arena := _get_balloon_arena()
+	if arena == null:
+		return
+	# 服务器权威距离校验（防伪造 idx / 超远程程拾取）
+	if arena.get_nearest_stone_pile(global_position) != pile_idx:
+		return
+	_server_has_stone = true
+	arena.take_stone_pile(pile_idx)
+	sync_stone_state.rpc_id(get_multiplayer_authority(), true)
+
+
+## 左键投掷石块（客户端入口：本地冷却预测 + 立即清石表现，服务器校验后广播）
+func throw_stone() -> void:
+	if not has_stone or not attribute_set.is_alive() or not _grounded:
+		return
+	var now := Time.get_ticks_msec()
+	if now < _stone_throw_local_cd_msec:
+		return
+	_stone_throw_local_cd_msec = now + STONE_THROW_COOLDOWN_MSEC
+	var origin := global_position + Vector3.UP * 1.3
+	var direction := _stone_throw_direction()
+	has_stone = false
+	is_collecting = false
+	_play_attack_animation(&"SwordSlash")
+	if multiplayer.is_server():
+		request_throw_stone(origin, direction)
+	else:
+		request_throw_stone.rpc_id(1, origin, direction)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func request_throw_stone(origin: Vector3, direction: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 0 and sender_id != get_multiplayer_authority():
+		return
+	var now := Time.get_ticks_msec()
+	if now < _stone_throw_cooldown_msec:
+		return
+	if not _server_has_stone or not attribute_set.is_alive():
+		return
+	_stone_throw_cooldown_msec = now + STONE_THROW_COOLDOWN_MSEC
+	_server_has_stone = false
+	var arena := _get_balloon_arena()
+	if arena == null:
+		return
+	var stone_name := "Stone_%d_%d" % [get_multiplayer_authority(), randi()]
+	arena.spawn_authority_stone(stone_name, origin, direction, STONE_THROW_SPEED)
+	arena.spawn_stone_visual.rpc(stone_name, origin, direction, STONE_THROW_SPEED)
+	sync_stone_state.rpc_id(get_multiplayer_authority(), false)
+
+
+## 服务器→owner 回执：手持石块状态（权威副本的客户端镜像）
+@rpc("any_peer", "call_local", "reliable")
+func sync_stone_state(has: bool) -> void:
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
+	has_stone = has
+	if has:
+		_notify_local("捡起了石块，按左键投掷击破气球！")
+
+
+## 投掷方向：相机朝向 + 轻微上抛（气球悬在 6m 高，需要抛物线）；NaN 全闸兜底
+func _stone_throw_direction() -> Vector3:
+	var dir := Vector3.FORWARD
+	if _spring_arm_offset != null:
+		dir = -_spring_arm_offset.global_transform.basis.z
+	if not (is_finite(dir.x) and is_finite(dir.y) and is_finite(dir.z)) or dir.length() < 0.001:
+		dir = Vector3.FORWARD
+	dir = dir + Vector3.UP * 0.35
+	if dir.length() < 0.001:
+		return Vector3.FORWARD
+	return dir.normalized()
+
+
 func get_skill_cooldown_ratio(skill_id: String) -> float:
 	var skill := SkillDatabase.get_skill(skill_id)
 	if skill == null or skill.cooldown <= 0.0:
@@ -1920,7 +2814,19 @@ func try_use_skill(skill_id: String) -> void:
 ## M11：技能释放音效（客户端预测处播一次；普攻由动画函数播，不在映射内）
 func _play_skill_sfx(skill_id: String) -> void:
 	if SKILL_SFX.has(skill_id):
-		SfxManager.play(SKILL_SFX[skill_id])
+		_local_sfx(SKILL_SFX[skill_id])
+
+
+## M43 空间化：动作音效按"是不是我自己的动作"分流。
+## 自己的动作走 2D——第三人称相机在身后约 5 米，若也走 3D，自己的挥剑声会被
+## 自己的弹簧臂距离衰减掉，听感反而变小。
+## 别人的动作（含 bot：bot 攻击由服务器代播，此时 authority 是 900x 而非本地玩家）
+## 必须走 3D，否则地图另一头的挥剑声会以全音量灌进耳朵——这正是用户的原始抱怨。
+func _local_sfx(key: StringName) -> void:
+	if is_multiplayer_authority():
+		SfxManager.play(key)
+	else:
+		SfxManager.play_3d(key, global_position)
 
 
 ## M5：按技能目标类型解析实际目标路径（空字符串 = 放弃释放）
@@ -1960,6 +2866,8 @@ func request_attack(target_path: String, skill_id: String) -> void:
 	var is_local_host_call := sender_id == 0
 	if not is_local_host_call and sender_id != get_multiplayer_authority():
 		return
+	printerr("ATK_DIAG: %d 攻击 %s skill=%s alive=%s" % [
+		get_multiplayer_authority(), target_path, skill_id, attribute_set.is_alive()])  # 临时诊断
 	if not attribute_set.is_alive():
 		return
 	var skill := SkillDatabase.get_skill(skill_id)
@@ -1988,13 +2896,22 @@ func request_attack(target_path: String, skill_id: String) -> void:
 	_server_next_attack_msec[skill_id] = now + int(skill.cooldown * 1000.0)
 	# M18b-2：服务器权威连招计数——步兵普攻按同规则推进段数，
 	# 伤害倍率 = 技能倍率 × 连段倍率（段 3 转圈重斩 1.6x）
+	var used_anim: StringName
 	if player_class == INFANTRY_CLASS_ID and skill_id == "basic_attack":
 		var adv := _advance_combo(_server_combo_index, _server_combo_last_msec, now)
 		_server_combo_index = adv[0]
 		_server_combo_last_msec = adv[1]
 		_resolve_skill_effects(skill, target_node, INFANTRY_COMBO_MULT[_server_combo_index])
+		used_anim = INFANTRY_COMBO_ANIMS[_server_combo_index]
 	else:
 		_resolve_skill_effects(skill, target_node)
+		used_anim = skill.animation
+	# M24：bot（虚拟 peer 9001+）没有本地客户端——玩家攻击动画由"发起端"本地播，
+	# bot 的发起端就是服务器，结算成功后由服务器代播（_request_animation 会经
+	# _server_publish_animation 广播到所有客户端，各端可见）。
+	if get_multiplayer_authority() >= BOT_AUTH_BASE:
+		_play_attack_animation(used_anim)
+		_play_skill_sfx(skill_id)
 
 
 ## M5：服务器侧目标解析（与客户端 _resolve_skill_target_path 对应的权威版）
@@ -2106,6 +3023,11 @@ func _deal_skill_damage(skill: SkillData, target_node: Node, target_attrs: Attri
 	if skill.knockback_force > 0.0 and target_node is Monster:
 		var push_dir: Vector3 = (target_node as Node3D).global_position - global_position
 		push_dir.y = 0.0
+		# M37：NaN 闸必须先于 length() 比较——NaN 与任何数比较恒 false，
+		# 原来的 length()>0.1 闸对 NaN 无效，NaN 方向会被 normalize 后
+		# 写进怪物击退速度，怪物位置随即 NaN，全场 normalize 刷屏。
+		if not (is_finite(push_dir.x) and is_finite(push_dir.z)):
+			return
 		if push_dir.length() > 0.1:
 			(target_node as Monster).add_knockback(push_dir.normalized() * skill.knockback_force)
 
@@ -2135,9 +3057,15 @@ func _get_combat_entities() -> Array:
 func _spawn_skill_projectile(skill: SkillData, target_node: Node) -> void:
 	var target_position := (target_node as Node3D).global_position + Vector3.UP * 1.0
 	var origin := global_position + Vector3.UP * 1.2
-	var direction := (target_position - origin).normalized()
-	if direction == Vector3.ZERO:
+	# M33：NaN 闸必须在 normalized() **之前**——原来先 normalize 再查，
+	# 闸来得太晚，引擎内部已经刷了一堆警告。
+	var raw_dir := target_position - origin
+	var direction := raw_dir
+	if not (is_finite(raw_dir.x) and is_finite(raw_dir.y) and is_finite(raw_dir.z)) or raw_dir.length() < 0.001:
 		direction = -global_transform.basis.z
+	if not (is_finite(direction.x) and is_finite(direction.y) and is_finite(direction.z)) or direction.length() < 0.001:
+		direction = Vector3.FORWARD
+	direction = direction.normalized()
 	var projectile_name := "Proj_%d_%d" % [get_multiplayer_authority(), randi()]
 	spawn_projectile.rpc(projectile_name, origin, direction, skill.projectile_speed, skill.range, skill.id)
 	# 服务器本地实例记录攻击者，用于命中回调
@@ -2146,7 +3074,7 @@ func _spawn_skill_projectile(skill: SkillData, target_node: Node) -> void:
 		local_projectile.set_attacker(self)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func spawn_projectile(
 	proj_name: String,
 	origin: Vector3,
@@ -2155,6 +3083,10 @@ func spawn_projectile(
 	max_range: float,
 	skill_id: String
 ) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	var skill := SkillDatabase.get_skill(skill_id)
 	var color := Color(1.0, 0.55, 0.15)
 	if skill:
@@ -2169,8 +3101,12 @@ func spawn_projectile(
 
 
 ## M5：服务器命中后广播：全服移除弹道（伤害已由 apply_combat_damage 链路同步）
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func despawn_projectile(proj_name: String) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	var projectile := _effects_root().get_node_or_null(proj_name)
 	if projectile:
 		projectile.queue_free()
@@ -2190,8 +3126,12 @@ func _on_projectile_hit(collider: Object, skill_id: String, proj_name: String) -
 	despawn_projectile.rpc(proj_name)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_combat_heal(target_path: String, amount: int) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	var target := get_node_or_null(target_path) as Node3D
 	if target == null:
 		return
@@ -2213,6 +3153,12 @@ func request_choose_class(class_id: String) -> void:
 		return
 	player_class = class_id
 	remove_meta("auto_defaulted_class") # M18b-1：主动选择过，不再自动弹选择界面
+	# M27 条款 V3：职业变更回写 Network.players 权威副本——否则迟加入客户端
+	# 经 _sync_registered_player 创建该玩家节点时 class 为空，
+	# 模型退回 GodotRobot（事故 C："客户机看到红色机器人"）。
+	var authority_id := get_multiplayer_authority()
+	if Network.players.has(authority_id):
+		Network.players[authority_id]["class"] = class_id
 	_apply_class_base_stats()
 	sync_class.rpc(class_id)
 	var level_scene := get_tree().current_scene
@@ -2265,8 +3211,12 @@ func apply_combat_damage(amount: int, _source_peer_id: int, is_crit: bool) -> vo
 	sync_combat_damage.rpc(_absolute_path(self), applied, is_crit, is_blocking)
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_combat_damage(target_path: String, amount: int, is_crit: bool, blocked: bool = false) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	var target := get_node_or_null(target_path) as Node3D
 	if target == null:
 		return
@@ -2314,8 +3264,12 @@ func request_respawn() -> void:
 	sync_player_respawn.rpc(global_position)
 
 
-@rpc("authority", "call_local")
+@rpc("any_peer", "call_local")
 func sync_player_respawn(new_position: Vector3) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	global_position = new_position
 	velocity = Vector3.ZERO
 	rotation = Vector3.ZERO
@@ -2420,6 +3374,8 @@ func request_turn_in_quest(quest_id: String) -> void:
 		add_gold(quest.reward_gold)
 	_quest_progress.erase(quest_id)
 	_quests_done.append(quest_id)
+	# M24：好感度结算——协作过的 bot 按各自性格加好感
+	RelationshipManager.on_quest_completed(self)
 	var level_scene := get_tree().current_scene
 	if level_scene and level_scene.has_method("show_chat_message"):
 			level_scene.show_chat_message.rpc(
@@ -2433,8 +3389,12 @@ func _sync_quest_state() -> void:
 	sync_quest_state.rpc(_quest_progress.duplicate(), _quests_done.duplicate())
 
 
-@rpc("authority", "call_local", "reliable")
+@rpc("any_peer", "call_local", "reliable")
 func sync_quest_state(progress: Dictionary, done: Array) -> void:
+	# M26：服务器下发型同步（防客户端伪造），根因同 sync_experience
+	var sender_id := multiplayer.get_remote_sender_id()
+	if sender_id != 1 and not (sender_id == 0 and multiplayer.is_server()):
+		return
 	_quest_progress.clear()
 	for key in progress:
 		_quest_progress[str(key)] = int(progress[key])

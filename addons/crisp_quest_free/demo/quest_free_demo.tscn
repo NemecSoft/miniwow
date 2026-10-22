@@ -1,0 +1,577 @@
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Theme" path="res://addons/crisp_quest_free/crisp_quest_free.tres" id="1"]
+[ext_resource type="Script" path="res://addons/crisp_quest_free/demo/quest_free_demo.gd" id="2"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/sword.png" id="3"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/shield.png" id="4"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/helmet.png" id="5"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_colour/potion_red.png" id="6"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_colour/gem_ruby.png" id="7"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/key.png" id="8"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/scroll.png" id="9"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/book.png" id="10"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/map.png" id="11"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/bag.png" id="12"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/potion.png" id="13"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/coin.png" id="14"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/gem.png" id="15"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/chest.png" id="16"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/skull.png" id="17"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/heart.png" id="18"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_white/star.png" id="19"]
+[ext_resource type="Texture2D" path="res://addons/crisp_quest_free/textures/1x/icons_colour/coin_gold.png" id="20"]
+
+[node name="QuestFreeDemo" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1")
+script = ExtResource("2")
+
+[node name="Background" type="ColorRect" parent="."]
+mouse_filter = 2
+color = Color(0.1647, 0.102, 0.0549, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Columns" type="HBoxContainer" parent="Margin"]
+theme_override_constants/separation = 24
+layout_mode = 2
+
+[node name="Left" type="VBoxContainer" parent="Margin/Columns"]
+custom_minimum_size = Vector2(440, 0)
+theme_override_constants/separation = 14
+layout_mode = 2
+
+[node name="WindowWrap" type="Control" parent="Margin/Columns/Left"]
+size_flags_vertical = 3
+layout_mode = 2
+
+[node name="Window" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap"]
+theme_type_variation = &"WindowPanel"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Body" type="VBoxContainer" parent="Margin/Columns/Left/WindowWrap/Window"]
+theme_override_constants/separation = 10
+layout_mode = 2
+
+[node name="Slots" type="GridContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+size_flags_horizontal = 4
+columns = 6
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+layout_mode = 2
+
+[node name="Slot1" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"SlotSelected"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot1"]
+texture = ExtResource("3")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot2" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"SlotRare"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot2"]
+texture = ExtResource("4")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot3" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"SlotEpic"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot3"]
+texture = ExtResource("5")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot4" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot4"]
+texture = ExtResource("6")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot5" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot5"]
+texture = ExtResource("7")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot6" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot6"]
+texture = ExtResource("8")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot7" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot7"]
+texture = ExtResource("9")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot8" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot8"]
+texture = ExtResource("10")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot9" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot9"]
+texture = ExtResource("11")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot10" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"SlotHover"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots/Slot10"]
+texture = ExtResource("12")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Slot11" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="Slot12" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Slots"]
+theme_type_variation = &"Slot"
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="SlotButtonsLabel" type="Label" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+theme_type_variation = &"LabelMuted"
+text = "SlotButton: hover, click to select"
+layout_mode = 2
+
+[node name="SlotButtons" type="HBoxContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+alignment = 1
+theme_override_constants/separation = 6
+layout_mode = 2
+
+[node name="SlotButton1" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = true
+icon = ExtResource("13")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton2" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("14")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton3" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("15")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton4" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("16")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton5" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("17")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton6" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("18")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="SlotButton7" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/SlotButtons"]
+theme_type_variation = &"SlotButton"
+custom_minimum_size = Vector2(48, 48)
+toggle_mode = true
+button_pressed = false
+icon = ExtResource("19")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="Divider" type="HSeparator" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+size_flags_vertical = 3
+layout_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body"]
+theme_override_constants/separation = 10
+layout_mode = 2
+
+[node name="Gold" type="PanelContainer" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions"]
+theme_type_variation = &"CurrencyPlate"
+custom_minimum_size = Vector2(112, 32)
+size_flags_vertical = 4
+layout_mode = 2
+
+[node name="GoldLabel" type="Label" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions/Gold"]
+text = "1,280"
+horizontal_alignment = 2
+layout_mode = 2
+
+[node name="GoldIcon" type="TextureRect" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions/Gold/GoldLabel"]
+layout_mode = 0
+offset_left = -30.0
+offset_top = 2.0
+offset_right = -10.0
+offset_bottom = 22.0
+texture = ExtResource("20")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Gap" type="Control" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions"]
+size_flags_horizontal = 3
+layout_mode = 2
+
+[node name="EquipButton" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 0)
+tooltip_text = "Heals the hero a little"
+text = "Equip"
+layout_mode = 2
+
+[node name="DropButton" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions"]
+custom_minimum_size = Vector2(110, 0)
+disabled = true
+text = "Drop"
+layout_mode = 2
+
+[node name="BagButton" type="Button" parent="Margin/Columns/Left/WindowWrap/Window/Body/Actions"]
+theme_type_variation = &"ButtonSquare"
+custom_minimum_size = Vector2(52, 52)
+icon = ExtResource("12")
+icon_alignment = 1
+layout_mode = 2
+
+[node name="WindowTitle" type="Label" parent="Margin/Columns/Left/WindowWrap"]
+theme_type_variation = &"LabelTitle"
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 6.0
+offset_bottom = 42.0
+grow_horizontal = 2
+text = "Inventory"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="Margin/Columns/Left/WindowWrap"]
+theme_type_variation = &"ButtonClose"
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -44.0
+offset_top = 7.0
+offset_right = -12.0
+offset_bottom = 41.0
+grow_horizontal = 0
+
+[node name="Hotbar" type="HBoxContainer" parent="Margin/Columns/Left"]
+alignment = 1
+theme_override_constants/separation = 6
+layout_mode = 2
+
+[node name="Hotbar1" type="PanelContainer" parent="Margin/Columns/Left/Hotbar"]
+theme_type_variation = &"HotbarSlot"
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/Hotbar/Hotbar1"]
+texture = ExtResource("3")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Hotbar2" type="PanelContainer" parent="Margin/Columns/Left/Hotbar"]
+theme_type_variation = &"HotbarSlot"
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/Hotbar/Hotbar2"]
+texture = ExtResource("4")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Hotbar3" type="PanelContainer" parent="Margin/Columns/Left/Hotbar"]
+theme_type_variation = &"HotbarSlot"
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/Hotbar/Hotbar3"]
+texture = ExtResource("6")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Hotbar4" type="PanelContainer" parent="Margin/Columns/Left/Hotbar"]
+theme_type_variation = &"HotbarSlot"
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Margin/Columns/Left/Hotbar/Hotbar4"]
+texture = ExtResource("9")
+stretch_mode = 3
+mouse_filter = 2
+layout_mode = 2
+
+[node name="Hotbar5" type="PanelContainer" parent="Margin/Columns/Left/Hotbar"]
+theme_type_variation = &"HotbarSlot"
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="Right" type="VBoxContainer" parent="Margin/Columns"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+layout_mode = 2
+
+[node name="Hero" type="HBoxContainer" parent="Margin/Columns/Right"]
+theme_override_constants/separation = 14
+layout_mode = 2
+
+[node name="Portrait" type="PanelContainer" parent="Margin/Columns/Right/Hero"]
+theme_type_variation = &"PortraitFrame"
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+
+[node name="Face" type="TextureRect" parent="Margin/Columns/Right/Hero/Portrait"]
+texture = ExtResource("5")
+stretch_mode = 5
+mouse_filter = 2
+custom_minimum_size = Vector2(44, 44)
+expand_mode = 1
+layout_mode = 2
+
+[node name="Stats" type="VBoxContainer" parent="Margin/Columns/Right/Hero"]
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 6
+layout_mode = 2
+
+[node name="HeroName" type="Label" parent="Margin/Columns/Right/Hero/Stats"]
+text = "Aria  -  Level 12"
+layout_mode = 2
+
+[node name="Health" type="ProgressBar" parent="Margin/Columns/Right/Hero/Stats"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+value = 72.0
+layout_mode = 2
+
+[node name="Mana" type="ProgressBar" parent="Margin/Columns/Right/Hero/Stats"]
+unique_name_in_owner = true
+theme_type_variation = &"ProgressBarMana"
+custom_minimum_size = Vector2(0, 20)
+value = 45.0
+layout_mode = 2
+
+[node name="Ribbon" type="PanelContainer" parent="Margin/Columns/Right"]
+theme_type_variation = &"Ribbon"
+custom_minimum_size = Vector2(340, 56)
+size_flags_horizontal = 4
+layout_mode = 2
+
+[node name="RibbonLabel" type="Label" parent="Margin/Columns/Right/Ribbon"]
+theme_type_variation = &"LabelOnAccent"
+text = "Quest complete"
+horizontal_alignment = 1
+layout_mode = 2
+
+[node name="Quest1" type="PanelContainer" parent="Margin/Columns/Right"]
+theme_type_variation = &"QuestEntry"
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Margin/Columns/Right/Quest1"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Columns/Right/Quest1/Row"]
+size_flags_horizontal = 3
+text = "Find the lost key"
+layout_mode = 2
+
+[node name="State" type="Label" parent="Margin/Columns/Right/Quest1/Row"]
+theme_type_variation = &"LabelMuted"
+text = "1 / 3"
+layout_mode = 2
+
+[node name="Quest2" type="PanelContainer" parent="Margin/Columns/Right"]
+theme_type_variation = &"QuestEntry"
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Margin/Columns/Right/Quest2"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/Columns/Right/Quest2/Row"]
+size_flags_horizontal = 3
+text = "Return to the elder"
+layout_mode = 2
+
+[node name="State" type="Label" parent="Margin/Columns/Right/Quest2/Row"]
+theme_type_variation = &"LabelMuted"
+text = "new"
+layout_mode = 2
+
+[node name="Options" type="PanelContainer" parent="Margin/Columns/Right"]
+layout_mode = 2
+
+[node name="Rows" type="VBoxContainer" parent="Margin/Columns/Right/Options"]
+theme_override_constants/separation = 8
+layout_mode = 2
+
+[node name="DamageNumbers" type="CheckBox" parent="Margin/Columns/Right/Options/Rows"]
+button_pressed = true
+text = "Show damage numbers"
+layout_mode = 2
+
+[node name="SliderRow" type="HBoxContainer" parent="Margin/Columns/Right/Options/Rows"]
+theme_override_constants/separation = 12
+layout_mode = 2
+
+[node name="SliderLabel" type="Label" parent="Margin/Columns/Right/Options/Rows/SliderRow"]
+text = "Mana"
+layout_mode = 2
+
+[node name="ManaSlider" type="HSlider" parent="Margin/Columns/Right/Options/Rows/SliderRow"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 45.0
+layout_mode = 2
+
+[node name="HeroEdit" type="LineEdit" parent="Margin/Columns/Right/Options/Rows"]
+placeholder_text = "Hero name"
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Margin/Columns/Right"]
+size_flags_vertical = 3
+layout_mode = 2
+
+[node name="DialogWrap" type="Control" parent="Margin/Columns/Right"]
+custom_minimum_size = Vector2(0, 124)
+layout_mode = 2
+
+[node name="Dialog" type="PanelContainer" parent="Margin/Columns/Right/DialogWrap"]
+theme_type_variation = &"DialogBox"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Text" type="Label" parent="Margin/Columns/Right/DialogWrap/Dialog"]
+text = "Welcome, traveller. Everything on this screen is a plain Godot control styled by crisp_quest_free.tres."
+autowrap_mode = 3
+vertical_alignment = 1
+layout_mode = 2
+
+[node name="Name" type="PanelContainer" parent="Margin/Columns/Right/DialogWrap"]
+theme_type_variation = &"NamePlate"
+layout_mode = 0
+offset_left = 22.0
+offset_right = 150.0
+offset_bottom = 32.0
+
+[node name="NameLabel" type="Label" parent="Margin/Columns/Right/DialogWrap/Name"]
+theme_type_variation = &"LabelOnAccent"
+text = "Elder"
+horizontal_alignment = 1
+layout_mode = 2

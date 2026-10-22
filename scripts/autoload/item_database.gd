@@ -14,6 +14,20 @@ const CHICKEN_LEG_ICON: Texture2D = preload("res://assets/items/misc/icons/chick
 const BONE_ICON: Texture2D = preload("res://assets/items/misc/icons/bone.png")
 const CHALICE_ICON: Texture2D = preload("res://assets/items/misc/icons/chalice.png")
 
+## M43：商人货架白名单——商店界面（ShopUI）与服务端购买校验共用同一份数据。
+## 原先只写在 ShopUI 里，服务端无从校验，客户端可以买任意物品（含未上架的高价值装备）。
+const MERCHANT_STOCK: Array[String] = [
+	"sword_iron",
+	"sword_green",
+	"sword_blue",
+	"axe_iron",
+	"cap",
+	"helm",
+	"circlet",
+	"bread",
+	"water",
+]
+
 var items: Dictionary = {}
 
 
@@ -147,6 +161,8 @@ func _create_sample_items():
 	_create_equipment("sword_green", "精铁剑", "剑身泛着绿光的精铁长剑。", Item.ItemType.WEAPON, Item.ItemRarity.UNCOMMON, 4, 0, 90, "res://scenes/items/weapons/sword.tscn", SWORD_ICON)
 	_create_equipment("sword_blue", "亡灵利刃", "从亡灵将军骸骨旁夺得的蓝色战刃。", Item.ItemType.WEAPON, Item.ItemRarity.RARE, 7, 0, 220, "res://scenes/items/weapons/sword_big.tscn", SWORD_BIG_ICON)
 	_create_equipment("axe_iron", "战斧", "沉重但劈砍有力的铁斧。", Item.ItemType.WEAPON, Item.ItemRarity.COMMON, 3, 0, 60, "res://scenes/items/weapons/axe.tscn", AXE_ICON)
+	# ===== M36：气球夺剑小游戏战利品（击破 5 个气球后宝剑掉落，场景仅此一处产出）=====
+	_create_equipment("balloon_sword", "气球宝剑", "缀着彩色气球缎带的庆典之剑，击落全部气球才能摘得。", Item.ItemType.WEAPON, Item.ItemRarity.RARE, 7, 0, 220, "res://scenes/items/weapons/sword_big.tscn", SWORD_BIG_ICON)
 	# 帽子（防具部位）
 	_create_equipment("cap", "皮帽", "结实的皮制软帽。", Item.ItemType.HAT, Item.ItemRarity.COMMON, 0, 1, 15, "res://scenes/items/hats/fedora.tscn", FEDORA_ICON)
 	_create_equipment("helm", "战盔", "带护颈的战盔，哨兵部队制式。", Item.ItemType.HAT, Item.ItemRarity.UNCOMMON, 0, 2, 50, "res://scenes/items/hats/sheriff_hat.tscn", SHERIFF_HAT_ICON)

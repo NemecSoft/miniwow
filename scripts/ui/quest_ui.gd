@@ -100,17 +100,8 @@ func _create_locked_row(quest: QuestData) -> Control:
 
 func _create_quest_row(quest: QuestData, status: String) -> Control:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.14, 0.9)
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
-	panel.add_theme_stylebox_override("panel", style)
+	# M22：吃主题 RowCard 变体（扁平小卡片+主题色细边），不再硬编码样式
+	panel.theme_type_variation = &"RowCard"
 
 	var hbox := HBoxContainer.new()
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vehicles/air_vehicle.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://assets/models/SM_Airplane.fbx" id="2_plane"]
+
+[node name="AirVehicle" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="PlaneModel" parent="." instance=ExtResource("2_plane")]
+transform = Transform3D(2.5, 0, 0, 0, 2.5, 0, 0, 0, 2.5, 0, 0, 0)

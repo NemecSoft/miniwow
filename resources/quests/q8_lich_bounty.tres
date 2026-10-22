@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q8_lich_bounty"
+name = "亡潮清算"
+description = "卫兵队长卡尔：心核带回来了，干得漂亮。但暗处涌动的巫妖大军不除，村子永无宁日——杀 8 个巫妖，这把从亡灵将军骸骨旁夺得的蓝色战刃，就是你的了。"
+objective_text = "击杀巫妖"
+objective_type = 0
+target_monster_id = "lich"
+required_count = 8
+min_level = 7
+reward_exp = 1000
+reward_gold = 250
+reward_item_id = "sword_blue"
+reward_item_quantity = 1
+prerequisite_quest_id = "q6_golem_hunt"

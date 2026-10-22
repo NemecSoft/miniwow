@@ -1,0 +1,17 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+=== Environment ===
+  HAS tonemap_exposure
+  HAS fog_density
+=== ParticleProcessMaterial ===
+  HAS turbulence_enabled
+  HAS turbulence_noise_strength
+  HAS turbulence_noise_scale
+  HAS turbulence_influence_min
+  HAS turbulence_influence_max
+=== BaseMaterial3D ===
+  HAS depth_draw_mode
+  HAS billboard_keep_scale
+KEY_F5=4194336 KEY_F6=4194337
+MonsterDatabase: 已加载 7 种怪物
+QuestDatabase: 已注册 8 个任务

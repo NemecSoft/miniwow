@@ -1,0 +1,4 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://tools/m39_bake_far_terrain.gd" id="1"]
+[node name="BakeFar" type="Node"]
+script = ExtResource("1")

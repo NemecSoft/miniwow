@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="QuestData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/quests/quest_data.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+id = "q7_raider_hunt"
+name = "外来袭击者"
+description = "卫兵队长卡尔：东边林子里冒出一群扛着铁砧的外来袭击者，见人就砸，比野狼凶得多。去收拾 4 个，让这帮外乡人知道这村子不好惹。"
+objective_text = "击杀外来袭击者"
+objective_type = 0
+target_monster_id = "kaykit_raider"
+required_count = 4
+min_level = 2
+reward_exp = 180
+reward_gold = 35
+reward_item_id = "bread"
+reward_item_quantity = 2

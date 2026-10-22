@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/minigame/balloon_stone.gd" id="1_stone"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_stone"]
+radius = 0.13
+height = 0.22
+radial_segments = 6
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stone"]
+albedo_color = Color(0.45, 0.44, 0.42, 1)
+roughness = 1.0
+
+[node name="BalloonStone" type="Node3D"]
+script = ExtResource("1_stone")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.75, 0, 0, 0, 1.25, 0, 0, 0)
+mesh = SubResource("SphereMesh_stone")
+surface_material_override/0 = SubResource("StandardMaterial3D_stone")

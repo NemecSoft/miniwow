@@ -7,18 +7,10 @@ extends CanvasLayer
 
 signal shop_closed
 
-## 商人商品清单（按 id 引用 ItemDatabase，价格取物品价值）
-const SHOP_STOCK: Array[String] = [
-	"sword_iron",
-	"sword_green",
-	"sword_blue",
-	"axe_iron",
-	"cap",
-	"helm",
-	"circlet",
-	"bread",
-	"water",
-]
+## 商人商品清单（按 id 引用 ItemDatabase，价格取物品价值）。
+## M43：数据源上移到 ItemDatabase.MERCHANT_STOCK——服务端 request_buy_item 要用同一份
+## 白名单做校验，两边共用避免"界面改了货架、服务端还认旧表"的错位。
+const SHOP_STOCK: Array[String] = ItemDatabase.MERCHANT_STOCK
 
 var current_player: Character = null
 

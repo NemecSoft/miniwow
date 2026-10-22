@@ -4,13 +4,17 @@ signal player_connected(peer_id, player_info)
 signal server_disconnected
 
 const SERVER_ADDRESS: String = "127.0.0.1"
-const SERVER_PORT: int = 8080
+## 端口可覆盖：调试探针（如 tools/walk_block_probe.gd）需要在不打扰
+## 正在运行的游戏实例的前提下自己起一个 host。
+static var SERVER_PORT: int = 8080
 const MAX_PLAYERS: int = 10
 const MAX_NICK_LENGTH := 24
 const MAX_ADDRESS_LENGTH := 253
 
 var players = {}
-var player_info = {"nick": "host", "skin": Character.SkinColor.BLUE}
+# M27 条款 V3：注册信息是外观权威副本，三字段缺一即视为不同步缺陷——
+# 旧版只有 nick/skin，迟加入客户端拿不到主机职业（事故 C：模型双裂）。
+var player_info = {"nick": "host", "skin": Character.SkinColor.BLUE, "class": ""}
 var _session_active := false
 
 
@@ -61,7 +65,20 @@ func join_game(nickname: String, skin_color_str: String, address: String = SERVE
 
 
 func _on_connected_ok():
+	# M27 事故 D（最深层根因）：Godot 4 ENet 客户端在 connected_to_server 触发时
+	# unique_id 可能还是 create_client 的默认值 1（服务器 id 分配确认消息尚未
+	# 到达/处理）。曾因此引发连锁灾难：join 端把自己当 peer 1 → 本地玩家节点
+	# 错占"1"槽位（host 角色被 spawner 重放时 ERR_INVALID_DATA 放弃）→
+	# join 的所有 rpc（选职业/X 召唤/E 上座）寻的服务器的"1"=host 角色 →
+	# 客户端实际在远程操控主机，且 peer 2 在服务器从未注册（_register_player
+	# 的 players.has(1) 早退），服务器压根没有"2"节点（骑乘/交互全找不到目标）。
+	# 修复：轮询等待服务器分配的真实 id（unique_id > 1）再注册，最多等 2 秒。
 	var peer_id = multiplayer.get_unique_id()
+	var waited := 0.0
+	while peer_id <= 1 and waited < 2.0:
+		await get_tree().create_timer(0.05).timeout
+		peer_id = multiplayer.get_unique_id()
+		waited += 0.05
 	players[peer_id] = player_info
 	player_connected.emit(peer_id, player_info)
 	_register_player.rpc_id(1, player_info)
@@ -147,7 +164,10 @@ func _sync_registered_player(peer_id: int, registered_player_info: Dictionary):
 func sanitize_player_info(info: Dictionary, fallback_nick: String) -> Dictionary:
 	return {
 		"nick": sanitize_nickname(str(info.get("nick", "")), fallback_nick),
-		"skin": sanitize_skin_value(info.get("skin", Character.SkinColor.BLUE))
+		"skin": sanitize_skin_value(info.get("skin", Character.SkinColor.BLUE)),
+		# M27 条款 V3：class 原样透传（合法性由 ClassDatabase 校验），
+		# 空串 = 未选职业（进游戏后会弹选择界面）
+		"class": str(info.get("class", "")),
 	}
 
 

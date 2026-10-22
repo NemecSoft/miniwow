@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ca3ml6tm23adv"
-path="res://.godot/imported/Enemy_Medium_enemy_texture.png-44a357cd9c7f873f8219c11f76d4526c.ctex"
+path.s3tc="res://.godot/imported/Enemy_Medium_enemy_texture.png-44a357cd9c7f873f8219c11f76d4526c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "978493fb2c673a523989907e95c0ee28"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/infantry_kaykit/Enemy_Medium_enemy_texture.png"
-dest_files=["res://.godot/imported/Enemy_Medium_enemy_texture.png-44a357cd9c7f873f8219c11f76d4526c.ctex"]
+dest_files=["res://.godot/imported/Enemy_Medium_enemy_texture.png-44a357cd9c7f873f8219c11f76d4526c.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
